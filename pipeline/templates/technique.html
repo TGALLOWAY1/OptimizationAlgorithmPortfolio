@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ technique_name }} — Optimization Algorithm Portfolio</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}]});"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+        nav { background: #1a237e; color: white; padding: 1rem 2rem; }
+        nav a { color: white; text-decoration: none; }
+        h1 { font-size: 2rem; margin: 1.5rem 0 1rem; color: #1a237e; }
+        h2 { font-size: 1.5rem; margin: 2rem 0 0.75rem; color: #283593; border-bottom: 2px solid #e8eaf6; padding-bottom: 0.25rem; }
+        h3 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; }
+        p, li { margin-bottom: 0.5rem; }
+        pre { background: #263238; color: #eeffff; padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 1rem 0; }
+        code { font-family: 'Fira Code', monospace; font-size: 0.9em; }
+        .section { margin-bottom: 2rem; }
+        .tag { display: inline-block; background: #e8eaf6; color: #283593; padding: 0.2rem 0.6rem; border-radius: 4px; margin: 0.2rem; font-size: 0.85rem; }
+        .infographic { text-align: center; margin: 2rem 0; }
+        .infographic img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <nav><a href="index.html">Optimization Algorithm Portfolio</a></nav>
+    <div class="container">
+        <h1>{{ technique_name }}</h1>
+
+        {% if overview %}
+        <div class="section">
+            <h2>Overview</h2>
+            <p><strong>{{ overview.summary }}</strong></p>
+            {{ overview.markdown | markdown | safe }}
+            <h3>Use Cases</h3>
+            <ul>{% for uc in overview.use_cases %}<li>{{ uc }}</li>{% endfor %}</ul>
+            <h3>Strengths</h3>
+            <ul>{% for s in overview.strengths %}<li>{{ s }}</li>{% endfor %}</ul>
+            <h3>Limitations</h3>
+            <ul>{% for l in overview.limitations %}<li>{{ l }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        {% if math_deep_dive %}
+        <div class="section">
+            <h2>Mathematical Deep Dive</h2>
+            {{ math_deep_dive.markdown | markdown | safe }}
+            <h3>Key Equations</h3>
+            {% for eq in math_deep_dive.key_equations %}
+            <div>{{ eq }}</div>
+            {% endfor %}
+            <h3>Worked Examples</h3>
+            {% for ex in math_deep_dive.worked_examples %}
+            <div>{{ ex }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if implementation %}
+        <div class="section">
+            <h2>Implementation</h2>
+            {{ implementation.markdown | markdown | safe }}
+            <h3>Pseudocode</h3>
+            <pre><code>{{ implementation.pseudo_code }}</code></pre>
+            <h3>Python Examples</h3>
+            {% for ex in implementation.python_examples %}
+            <pre><code>{{ ex }}</code></pre>
+            {% endfor %}
+            <h3>Libraries</h3>
+            <ul>{% for lib in implementation.libraries %}<li>{{ lib }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        {% if has_infographic %}
+        <div class="section infographic">
+            <h2>Infographic</h2>
+            <img src="images/{{ slug }}/infographic.png" alt="{{ technique_name }} infographic">
+        </div>
+        {% endif %}
+    </div>
+    <footer>Optimization Algorithm Portfolio</footer>
+</body>
+</html>
