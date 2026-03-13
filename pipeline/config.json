@@ -1,0 +1,40 @@
+{
+  "techniques": [
+    "Bayesian Optimization",
+    "Genetic Algorithm",
+    "Simulated Annealing",
+    "Particle Swarm Optimization",
+    "Gradient Descent",
+    "Nelder-Mead Simplex",
+    "CMA-ES",
+    "Differential Evolution"
+  ],
+  "artifact_types": [
+    "overview",
+    "math_deep_dive",
+    "implementation",
+    "infographic_spec"
+  ],
+  "providers": {
+    "openai": {
+      "model": "gpt-4o",
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    "gemini": {
+      "model": "gemini-3.1-pro-preview",
+      "api_key_env": "GEMINI_API_KEY"
+    },
+    "nano_banana": {
+      "model": "nano-banana-pro",
+      "api_key_env": "GEMINI_API_KEY"
+    }
+  },
+  "artifact_provider_map": {
+    "plan": "gemini",
+    "overview": "openai",
+    "math_deep_dive": "openai",
+    "implementation": "gemini",
+    "infographic_spec": "gemini",
+    "infographic_image": "nano_banana"
+  }
+}
