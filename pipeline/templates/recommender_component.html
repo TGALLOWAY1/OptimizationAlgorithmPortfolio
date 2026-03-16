@@ -1,0 +1,296 @@
+<!-- Algorithm Recommender Component -->
+<section id="recommender" class="recommender">
+    <div class="recommender__hero">
+        <h2 class="recommender__title">Algorithm Recommender</h2>
+        <p class="recommender__subtitle">Describe your optimization problem and we'll find the best algorithm for you.</p>
+        <textarea
+            id="recommender-query"
+            class="recommender__textarea"
+            placeholder="Describe your optimization problem (e.g., 'I have a high-dimensional continuous space where evaluations are very expensive...')"
+            rows="4"
+            maxlength="2000"
+        ></textarea>
+        <button id="recommender-btn" class="recommender__btn" onclick="submitRecommendation()">
+            <span id="btn-text">Find Best Algorithm</span>
+            <span id="btn-spinner" class="recommender__spinner" hidden></span>
+        </button>
+        <p id="recommender-error" class="recommender__error" hidden></p>
+    </div>
+
+    <div id="recommender-results" class="recommender__results" hidden>
+        <div id="recommender-cards" class="recommender__cards"></div>
+    </div>
+</section>
+
+<style>
+/* ── Recommender Section ───────────────────────────────────── */
+.recommender {
+    margin: 2.5rem 0;
+}
+
+.recommender__hero {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.recommender__title {
+    font-size: 1.6rem;
+    color: #1a237e;
+    margin-bottom: 0.4rem;
+}
+
+.recommender__subtitle {
+    color: #555;
+    font-size: 0.95rem;
+    margin-bottom: 1.25rem;
+}
+
+.recommender__textarea {
+    width: 100%;
+    padding: 1rem;
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.6;
+    border: 2px solid #d0d5dd;
+    border-radius: 10px;
+    resize: vertical;
+    transition: border-color 0.2s;
+    background: #fff;
+    color: #1a1a2e;
+}
+
+.recommender__textarea:focus {
+    outline: none;
+    border-color: #1a237e;
+    box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+}
+
+.recommender__textarea::placeholder {
+    color: #98a2b3;
+}
+
+.recommender__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.85rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: #1a237e;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 2px 6px rgba(26, 35, 126, 0.25);
+}
+
+.recommender__btn:hover:not(:disabled) {
+    background: #283593;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26, 35, 126, 0.35);
+}
+
+.recommender__btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── Spinner ───────────────────────────────────────────────── */
+.recommender__spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: rec-spin 0.7s linear infinite;
+}
+
+@keyframes rec-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Error ─────────────────────────────────────────────────── */
+.recommender__error {
+    color: #d32f2f;
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+}
+
+/* ── Results Cards ─────────────────────────────────────────── */
+.recommender__results {
+    margin-top: 2rem;
+}
+
+.recommender__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+}
+
+.rec-card {
+    position: relative;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.rec-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.rec-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.rec-card__name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1a237e;
+    margin: 0;
+    padding-right: 0.5rem;
+}
+
+.rec-card__badge {
+    flex-shrink: 0;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.rec-card__badge--green {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.rec-card__badge--yellow {
+    background: #fff8e1;
+    color: #f57f17;
+}
+
+.rec-card__badge--gray {
+    background: #f5f5f5;
+    color: #616161;
+}
+
+.rec-card__body {
+    flex: 1;
+    font-size: 0.9rem;
+    color: #444;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+}
+
+.rec-card__cta {
+    display: block;
+    width: 100%;
+    padding: 0.65rem;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a237e;
+    background: #e8eaf6;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.rec-card__cta:hover {
+    background: #c5cae9;
+}
+</style>
+
+<script>
+const API_URL = "/api/recommend";
+
+async function submitRecommendation() {
+    const textarea = document.getElementById("recommender-query");
+    const btn = document.getElementById("recommender-btn");
+    const btnText = document.getElementById("btn-text");
+    const spinner = document.getElementById("btn-spinner");
+    const errorEl = document.getElementById("recommender-error");
+    const resultsEl = document.getElementById("recommender-results");
+    const cardsEl = document.getElementById("recommender-cards");
+
+    const query = textarea.value.trim();
+    if (!query) {
+        errorEl.textContent = "Please describe your optimization problem.";
+        errorEl.hidden = false;
+        return;
+    }
+
+    /* ── Loading state ──────────────────────────────── */
+    errorEl.hidden = true;
+    resultsEl.hidden = true;
+    btn.disabled = true;
+    btnText.textContent = "Analyzing problem space\u2026";
+    spinner.hidden = false;
+
+    try {
+        const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query }),
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Request failed (" + res.status + ")");
+        }
+
+        const recommendations = await res.json();
+        renderCards(recommendations, cardsEl);
+        resultsEl.hidden = false;
+    } catch (e) {
+        errorEl.textContent = e.message || "Something went wrong. Please try again.";
+        errorEl.hidden = false;
+    } finally {
+        /* ── Reset button ───────────────────────────── */
+        btn.disabled = false;
+        btnText.textContent = "Find Best Algorithm";
+        spinner.hidden = true;
+    }
+}
+
+function renderCards(recommendations, container) {
+    container.innerHTML = "";
+    recommendations.forEach(function (rec) {
+        var badgeClass = "rec-card__badge--gray";
+        if (rec.confidence_score > 80) badgeClass = "rec-card__badge--green";
+        else if (rec.confidence_score > 60) badgeClass = "rec-card__badge--yellow";
+
+        var card = document.createElement("div");
+        card.className = "rec-card";
+        card.innerHTML =
+            '<div class="rec-card__header">' +
+                '<h3 class="rec-card__name">' + escapeHtml(rec.algorithm) + '</h3>' +
+                '<span class="rec-card__badge ' + badgeClass + '">' + rec.confidence_score + '% Match</span>' +
+            '</div>' +
+            '<p class="rec-card__body">' + escapeHtml(rec.justification) + '</p>' +
+            '<a class="rec-card__cta" href="/' + encodeURI(rec.url_slug) + '.html">Read Full Guide</a>';
+        container.appendChild(card);
+    });
+}
+
+function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+</script>

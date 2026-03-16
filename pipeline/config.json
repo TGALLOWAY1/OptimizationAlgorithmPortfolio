@@ -35,6 +35,7 @@
     "math_deep_dive": "openai",
     "implementation": "gemini",
     "infographic_spec": "gemini",
-    "infographic_image": "nano_banana"
+    "infographic_image": "nano_banana",
+    "recommender": "openai"
   }
 }
