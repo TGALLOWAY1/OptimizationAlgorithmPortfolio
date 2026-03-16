@@ -1,14 +1,17 @@
-"""Unified Flask application registering all API blueprints."""
+"""Unified Flask application registering all API blueprints and serving the static site."""
 
 import os
+from pathlib import Path
 
-from flask import Flask
+from flask import Flask, send_from_directory, abort
 from flask_cors import CORS
 
 from api.compare import compare_bp
 from api.math_tutor import math_tutor_bp
 from api.study_plan import study_plan_bp
 from api.adapt_code import adapt_code_bp
+
+SITE_DIR = Path(__file__).resolve().parent.parent / "site"
 
 
 def create_app() -> Flask:
@@ -34,6 +37,25 @@ def create_app() -> Flask:
             json=__import__("flask").request.get_json(silent=True),
         ):
             return recommender_app.full_dispatch_request()
+
+    # Serve static images from site/images/
+    @app.route("/images/<path:filepath>")
+    def serve_images(filepath):
+        return send_from_directory(SITE_DIR / "images", filepath)
+
+    # Serve the homepage
+    @app.route("/")
+    def serve_index():
+        return send_from_directory(SITE_DIR, "index.html")
+
+    # Serve any .html page from site/
+    @app.route("/<path:page>")
+    def serve_page(page):
+        if page.endswith(".html"):
+            file_path = SITE_DIR / page
+            if file_path.exists():
+                return send_from_directory(SITE_DIR, page)
+        abort(404)
 
     return app
 

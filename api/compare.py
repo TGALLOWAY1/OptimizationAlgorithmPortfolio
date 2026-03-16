@@ -32,7 +32,7 @@ COMPARE_SCHEMA = {
 }
 
 
-def _load_technique_artifacts(slug: str) -> dict | None:
+def _load_technique_artifacts(slug: str):
     """Load all JSON artifacts for a technique slug."""
     technique_dir = CONTENT_DIR / slug
     if not technique_dir.is_dir():

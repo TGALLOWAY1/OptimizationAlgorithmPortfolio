@@ -2,28 +2,44 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{ technique_name }} — Optimization Algorithm Portfolio</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css" id="highlight-theme">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
         onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}]});"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/languages/python.min.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', () => hljs.highlightAll());</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; }
-        .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
-        nav { background: #1a237e; color: white; padding: 1rem 2rem; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; -webkit-text-size-adjust: 100%; }
+        img { display: block; max-width: 100%; height: auto; }
+        .container { width: min(100%, 900px); margin: 0 auto; padding: clamp(1rem, 4vw, 2rem); }
+        nav { background: #1a237e; color: white; padding: 0.875rem 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
         nav a { color: white; text-decoration: none; }
-        h1 { font-size: 2rem; margin: 1.5rem 0 1rem; color: #1a237e; }
-        h2 { font-size: 1.5rem; margin: 2rem 0 0.75rem; color: #283593; border-bottom: 2px solid #e8eaf6; padding-bottom: 0.25rem; }
-        h3 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; }
-        p, li { margin-bottom: 0.5rem; }
-        pre { background: #263238; color: #eeffff; padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 1rem 0; }
-        code { font-family: 'Fira Code', monospace; font-size: 0.9em; }
+        h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); margin: 1.5rem 0 1rem; color: #1a237e; overflow-wrap: anywhere; }
+        h2 { font-size: clamp(1.35rem, 4vw, 1.5rem); margin: 2rem 0 0.75rem; color: #283593; border-bottom: 2px solid #e8eaf6; padding-bottom: 0.25rem; }
+        .section h2 { margin-top: 2rem; }
+        .section h2:first-child { margin-top: 0; }
+        .section .md-content h2 { font-size: 1.25rem; margin-top: 1.5rem; }
+        .section .md-content h3 { font-size: 1.1rem; margin-top: 1rem; }
+        h3 { font-size: clamp(1.05rem, 3.5vw, 1.2rem); margin: 1.5rem 0 0.5rem; }
+        p, li { margin-bottom: 0.5rem; overflow-wrap: anywhere; }
+        ul, ol { padding-left: 1.25rem; }
+        .summary { font-size: 1.05rem; color: #374151; line-height: 1.6; margin-bottom: 1rem; }
+        pre { margin: 1rem 0; border-radius: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; background: #282c34; }
+        pre code { padding: 1rem; display: block; width: max-content; min-width: 100%; font-size: 0.875rem; line-height: 1.5; background: #282c34; color: #abb2bf; }
+        .md-content pre code { background: #282c34; color: #abb2bf; }
+        code { font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
+        code.hljs { background: #282c34 !important; padding: 1rem; }
         .section { margin-bottom: 2rem; }
         .tag { display: inline-block; background: #e8eaf6; color: #283593; padding: 0.2rem 0.6rem; border-radius: 4px; margin: 0.2rem; font-size: 0.85rem; }
         .infographic { text-align: center; margin: 2rem 0; }
-        .infographic img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .infographic img { width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .md-content table { display: block; max-width: 100%; width: max-content; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .katex-display { overflow-x: auto; overflow-y: hidden; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
         footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; }
 
         /* Derivation accordion */
@@ -95,18 +111,25 @@
         .modal__btn:hover { background: #283593; }
         .modal__btn--cancel { background: #e0e0e0; color: #333; margin-right: 0.5rem; }
         .modal__btn--cancel:hover { background: #bdbdbd; }
+
+        @media (max-width: 640px) {
+            nav { padding: 0.75rem 1rem; }
+            .section { margin-bottom: 1.5rem; }
+            pre code { font-size: 0.8rem; }
+            .math-tutor-sidebar { width: 100%; right: -100%; }
+        }
     </style>
 </head>
 <body>
-    <nav><a href="index.html">Optimization Algorithm Portfolio</a></nav>
+    <nav><a href="index.html">Optimization Algorithm Portfolio</a> <a href="use-case-matrix.html">Use Case Matrix</a></nav>
     <div class="container">
         <h1>{{ technique_name }}</h1>
 
         {% if overview %}
         <div class="section">
             <h2>Overview</h2>
-            <p><strong>{{ overview.summary }}</strong></p>
-            {{ overview.markdown | markdown | safe }}
+            <p class="summary">{{ overview.summary }}</p>
+            <div class="md-content">{{ overview.markdown | md_section | safe }}</div>
             <h3>Use Cases</h3>
             <ul>{% for uc in overview.use_cases %}<li>{{ uc }}</li>{% endfor %}</ul>
             <h3>Strengths</h3>
@@ -119,8 +142,7 @@
         {% if math_deep_dive %}
         <div class="section" id="math-deep-dive">
             <h2>Mathematical Deep Dive</h2>
-            {{ math_deep_dive.markdown | markdown | safe }}
-
+            <div class="md-content">{{ math_deep_dive.markdown | md_downgrade | safe }}</div>
             <h3>Key Equations</h3>
             {% for eq in math_deep_dive.key_equations %}
             <div class="equation-label">{{ eq.label if eq.label is defined else '' }}</div>
@@ -142,7 +164,7 @@
 
             <h3>Worked Examples</h3>
             {% for ex in math_deep_dive.worked_examples %}
-            <div>{{ ex }}</div>
+            <div class="md-content">{{ ex | md_downgrade | safe }}</div>
             {% endfor %}
         </div>
         {% endif %}
@@ -150,9 +172,9 @@
         {% if implementation %}
         <div class="section">
             <h2>Implementation</h2>
-            {{ implementation.markdown | markdown | safe }}
+            <div class="md-content">{{ implementation.markdown | md_section | safe }}</div>
             <h3>Pseudocode</h3>
-            <pre><code>{{ implementation.pseudo_code }}</code></pre>
+            <pre><code class="language-plaintext">{{ implementation.pseudo_code }}</code></pre>
 
             {% if implementation.code_variations %}
             <h3>Code Variations</h3>
@@ -173,7 +195,7 @@
 
             <h3>Python Examples</h3>
             {% for ex in implementation.python_examples %}
-            <pre><code>{{ ex }}</code></pre>
+            <pre><code class="language-python">{{ ex }}</code></pre>
             {% endfor %}
             <h3>Libraries</h3>
             <ul>{% for lib in implementation.libraries %}<li>{{ lib }}</li>{% endfor %}</ul>
@@ -246,6 +268,8 @@
     <footer>Optimization Algorithm Portfolio</footer>
 
     <script>
+    document.addEventListener('DOMContentLoaded', () => hljs.highlightAll());
+
     /* ── Code Variation Tabs ───────────────────────────────── */
     function switchCodeTab(btn, panelId) {
         var container = btn.closest('.code-tabs');

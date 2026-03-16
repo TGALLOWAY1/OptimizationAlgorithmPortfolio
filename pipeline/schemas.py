@@ -260,11 +260,26 @@ INFOGRAPHIC_SPEC_SCHEMA = {
     "additionalProperties": False,
 }
 
+HOMEPAGE_SUMMARY_SCHEMA = {
+    "type": "object",
+    "required": ["bullets"],
+    "properties": {
+        "bullets": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "minItems": 3,
+            "maxItems": 5,
+        },
+    },
+    "additionalProperties": False,
+}
+
 SCHEMAS = {
     "plan": PLAN_SCHEMA,
     "overview": OVERVIEW_SCHEMA,
     "math_deep_dive": MATH_DEEP_DIVE_SCHEMA,
     "implementation": IMPLEMENTATION_SCHEMA,
     "infographic_spec": INFOGRAPHIC_SPEC_SCHEMA,
+    "homepage_summary": HOMEPAGE_SUMMARY_SCHEMA,
     "quiz": QUIZ_SCHEMA,
 }

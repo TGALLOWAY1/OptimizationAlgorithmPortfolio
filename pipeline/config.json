@@ -26,16 +26,17 @@
       "api_key_env": "GEMINI_API_KEY"
     },
     "nano_banana": {
-      "model": "nano-banana-pro",
+      "model": "gemini-3.1-flash-image-preview",
       "api_key_env": "GEMINI_API_KEY"
     }
   },
   "artifact_provider_map": {
     "plan": "gemini",
-    "overview": "openai",
-    "math_deep_dive": "openai",
+    "overview": "gemini",
+    "math_deep_dive": "gemini",
     "implementation": "gemini",
     "infographic_spec": "gemini",
+"homepage_summary": "gemini",
     "infographic_image": "nano_banana",
     "quiz": "openai",
     "recommender": "openai",

@@ -14,6 +14,9 @@ Return a JSON object with these fields:
 - **title** (string): A descriptive title for this overview article.
 - **summary** (string): A 2-3 sentence executive summary of the technique.
 - **markdown** (string): A comprehensive markdown article (minimum 800 words) covering:
+  - Use LaTeX for all math: inline with `$...$` (e.g. `$D_t$`, `$f(x)$`, `$GP(m(x), k(x, x'))$`), display with `$$...$$`.
+  - Use proper markdown: `##` for section headers, `###` for subsections. Numbered lists need a blank line before the first item; each item on its own line.
+  - Bold key terms in definition-style lists: `- **Term**: description` or `1. **Term**: description`.
   - What the technique is and its historical context
   - How it works at a high level (intuition before formalism)
   - When to use it vs. alternatives

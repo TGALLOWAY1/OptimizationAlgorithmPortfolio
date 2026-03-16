@@ -12,6 +12,9 @@ Return a JSON object with these fields:
 - **technique_slug** (string): "{{technique_slug}}"
 - **artifact_type** (string): "implementation"
 - **markdown** (string): A detailed implementation guide (minimum 800 words) covering:
+  - Do NOT start with a redundant title (e.g. "# Comprehensive Implementation Guide..."); the section header is provided by the page.
+  - Use `##` for main sections, `###` for subsections. Numbered lists need a blank line before the first item; each item on its own line.
+  - Bold key terms in definition-style lists: `- **Term**: description` or `1. **Term**: description`.
   - Algorithm pseudocode with clear step numbering
   - Data structures and their rationale
   - Key implementation decisions and trade-offs

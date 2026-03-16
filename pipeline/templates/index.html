@@ -2,21 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Optimization Algorithm Portfolio</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
-        header { background: #1a237e; color: white; padding: 2rem; text-align: center; }
-        header h1 { font-size: 2rem; }
-        header p { opacity: 0.9; margin-top: 0.5rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; -webkit-text-size-adjust: 100%; }
+        img { display: block; max-width: 100%; height: auto; }
+        .container { width: min(95%, 1600px); margin: 0 auto; padding: clamp(1rem, 3vw, 2rem); }
+        header { background: #1a237e; color: white; padding: clamp(1.5rem, 5vw, 2.5rem) 1rem; text-align: center; }
+        header h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); }
+        header p { opacity: 0.9; margin-top: 0.5rem; max-width: 48rem; margin-left: auto; margin-right: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
         .card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
-        .card a { text-decoration: none; color: inherit; display: block; padding: 1.5rem; }
+        .card a { text-decoration: none; color: inherit; display: block; height: 100%; padding: 1.25rem; }
         .card h2 { font-size: 1.2rem; color: #1a237e; margin-bottom: 0.5rem; }
-        .card p { font-size: 0.9rem; color: #555; }
+        .card p, .card ul { font-size: 0.9rem; color: #555; overflow-wrap: anywhere; }
+        .card ul { margin: 0; padding-left: 1.2rem; }
+        .card li { margin-bottom: 0.25rem; }
         .card .thumb { width: 100%; height: 160px; object-fit: cover; }
         footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; }
 
@@ -57,12 +60,19 @@
         .sp-timeline__title a { color: #1a237e; text-decoration: underline; }
         .sp-timeline__reason { font-size: 0.9rem; color: #555; margin-top: 0.25rem; }
         .sp-rationale { background: #e8eaf6; padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem; color: #333; }
+
+        @media (max-width: 640px) {
+            .grid { gap: 1rem; margin-top: 1.25rem; }
+            .card a { padding: 1rem; }
+            .card .thumb { height: 140px; }
+        }
     </style>
 </head>
 <body>
     <header>
         <h1>Optimization Algorithm Portfolio</h1>
         <p>Comprehensive educational content on optimization techniques</p>
+        <p style="margin-top: 0.75rem;"><a href="use-case-matrix.html" style="color: #c5cae9; text-decoration: underline;">Use Case Matrix</a> — Compare which algorithms fit which problem spaces</p>
     </header>
     <div class="container">
         {% include "recommender_component.html" %}
@@ -76,11 +86,19 @@
             {% for t in techniques %}
             <div class="card">
                 <a href="{{ t.slug }}.html">
-                    {% if t.has_infographic %}
+                    {% if t.has_preview %}
+                    <img class="thumb" src="images/{{ t.slug }}/preview.png" alt="{{ t.name }}">
+                    {% elif t.has_infographic %}
                     <img class="thumb" src="images/{{ t.slug }}/infographic.png" alt="{{ t.name }}">
                     {% endif %}
                     <h2>{{ t.name }}</h2>
+                    {% if t.bullets %}
+                    <ul>
+                        {% for b in t.bullets %}<li>{{ b }}</li>{% endfor %}
+                    </ul>
+                    {% else %}
                     <p>{{ t.summary }}</p>
+                    {% endif %}
                 </a>
             </div>
             {% endfor %}

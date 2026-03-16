@@ -1,5 +1,7 @@
 """Multi-provider LLM client with OpenAI, Gemini, and Nano Banana Pro support."""
 
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -7,7 +9,12 @@ import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 import jsonschema
+
+# Load .env from project root so API keys are available
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 try:
     from google import genai
@@ -29,6 +36,23 @@ CONFIG_PATH = Path(__file__).parent / "config.json"
 def load_config() -> dict:
     with open(CONFIG_PATH) as f:
         return json.load(f)
+
+
+def _schema_for_gemini(schema: dict) -> dict:
+    """Remove Gemini-unsupported schema fields (e.g. additionalProperties)."""
+    result = {}
+    for k, v in schema.items():
+        if k == "additionalProperties":
+            continue
+        if isinstance(v, dict):
+            result[k] = _schema_for_gemini(v)
+        elif isinstance(v, list):
+            result[k] = [
+                _schema_for_gemini(x) if isinstance(x, dict) else x for x in v
+            ]
+        else:
+            result[k] = v
+    return result
 
 
 class LLMProvider(ABC):
@@ -74,12 +98,13 @@ class GeminiProvider(LLMProvider):
 
     def generate(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
         combined_prompt = f"{system_prompt}\n\n{user_prompt}"
+        gemini_schema = _schema_for_gemini(schema)
         response = self.client.models.generate_content(
             model=self.model,
             contents=combined_prompt,
             config=genai_types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=schema,
+                response_json_schema=gemini_schema,
             ),
         )
         return json.loads(response.text)

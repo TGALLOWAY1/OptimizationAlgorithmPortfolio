@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{{ title }} — Optimization Algorithm Portfolio</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; -webkit-text-size-adjust: 100%; }
+        .container { width: min(100%, 1200px); margin: 0 auto; padding: clamp(1rem, 4vw, 2rem); }
+        nav { background: #1a237e; color: white; padding: 0.875rem 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+        nav a { color: white; text-decoration: none; }
+        h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); margin: 1.5rem 0 0.5rem; color: #1a237e; }
+        .description { color: #555; margin-bottom: 2rem; font-size: 1.05rem; }
+        .matrix-hint { color: #6b7280; font-size: 0.9rem; margin-top: -1rem; }
+        .matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 2rem 0; border-radius: 8px; }
+        table { width: 100%; min-width: 860px; border-collapse: collapse; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 8px; overflow: hidden; }
+        th, td { padding: 0.75rem 1rem; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        th { background: #1a237e; color: white; font-weight: 600; }
+        th.problem-space { text-align: left; background: #283593; min-width: 200px; }
+        td.problem-space { text-align: left; font-size: 0.9rem; }
+        .problem-desc { text-align: left; font-size: 0.8rem; color: #6b7280; overflow-wrap: anywhere; }
+        tr:hover td { background: #f9fafb; }
+        .cell-ideal, .cell-suitable { color: #059669; font-size: 1.25rem; }
+        .cell-unsuitable { color: #dc2626; font-size: 1.25rem; }
+        th.alg { font-size: 0.85rem; }
+        th.alg a { color: white; text-decoration: none; }
+        th.alg a:hover { text-decoration: underline; }
+        footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; }
+        @media (max-width: 640px) {
+            nav { padding: 0.75rem 1rem; }
+            .description { font-size: 1rem; }
+            th, td { padding: 0.65rem 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Optimization Algorithm Portfolio</a>
+        <a href="use-case-matrix.html">Use Case Matrix</a>
+    </nav>
+    <div class="container">
+        <h1>{{ title }}</h1>
+        <p class="description">{{ description }}</p>
+        <p class="matrix-hint">On iPhone-sized screens, swipe horizontally to view the full matrix.</p>
+        <div class="matrix-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="problem-space">Problem Space / Use Case</th>
+                        {% for alg in algorithms %}
+                        <th class="alg"><a href="{{ algorithm_slugs[alg] }}.html">{{ alg }}</a></th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ps in problem_spaces %}
+                    <tr>
+                        <td class="problem-space">
+                            <strong>{{ ps.label }}</strong>
+                            <div class="problem-desc">{{ ps.description }}</div>
+                        </td>
+                        {% for alg in algorithms %}
+                        <td class="cell-{{ matrix[alg][ps.id] }}">
+                            {% if matrix[alg][ps.id] in ['ideal', 'suitable'] %}
+                            ✅
+                            {% else %}
+                            ❌
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p style="margin-top: 1.5rem; font-size: 0.9rem; color: #6b7280;">
+            ✅ = ideal or suitable &nbsp;|&nbsp; ❌ = unsuitable
+        </p>
+    </div>
+    <footer>Optimization Algorithm Portfolio</footer>
+</body>
+</html>

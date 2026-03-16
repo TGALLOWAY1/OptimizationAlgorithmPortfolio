@@ -8,8 +8,10 @@ from pathlib import Path
 
 from pipeline.generator import (
     generate_artifact,
+    generate_homepage_summary,
     generate_infographic_image,
     generate_plan,
+    generate_preview_image,
     slugify,
 )
 from pipeline.llm_client import load_config
@@ -92,6 +94,7 @@ def main():
 
         # Step 2: Generate each artifact type
         infographic_spec = None
+        overview = None
         technique_artifacts: dict[str, dict] = {}
         for artifact_type in artifact_types:
             try:
@@ -104,6 +107,8 @@ def main():
                 )
                 if artifact_type == "infographic_spec":
                     infographic_spec = result
+                if artifact_type == "overview":
+                    overview = result
                 technique_artifacts[artifact_type] = result
                 stats["generated"] += 1
             except Exception as e:
@@ -116,6 +121,25 @@ def main():
                 stats["failed"] += 1
 
         all_technique_artifacts[slug] = technique_artifacts
+
+        # Step 2b: Generate homepage summary (requires overview)
+        if overview:
+            try:
+                generate_homepage_summary(
+                    slug,
+                    plan,
+                    overview,
+                    force=args.force,
+                    provider_override=args.provider,
+                )
+                stats["generated"] += 1
+            except Exception as e:
+                logger.error(
+                    "Failed to generate homepage summary for %s: %s",
+                    technique_name,
+                    e,
+                )
+                stats["failed"] += 1
 
         # Step 3: Generate infographic image
         if not args.skip_images and infographic_spec:
@@ -132,7 +156,20 @@ def main():
                 )
                 stats["failed"] += 1
 
-    logger.info("=== Generation Summary ===")
+        # Step 4: Generate homepage preview image (consistent theme for thumbnails)
+        if not args.skip_images:
+            try:
+                generate_preview_image(slug, technique_name, force=args.force)
+                stats["generated"] += 1
+            except Exception as e:
+                logger.error(
+                    "Failed to generate preview image for %s: %s",
+                    technique_name,
+                    e,
+                )
+                stats["failed"] += 1
+
+    logger.info("=== Pipeline Summary ===")
     logger.info(
         "Generated: %d | Skipped: %d | Failed: %d",
         stats["generated"],

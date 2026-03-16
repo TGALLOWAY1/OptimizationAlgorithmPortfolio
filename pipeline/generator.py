@@ -1,5 +1,7 @@
 """Artifact generation engine — creates plan and content artifacts for each technique."""
 
+from __future__ import annotations
+
 import json
 import logging
 import re
@@ -120,6 +122,44 @@ def generate_artifact(
     return result
 
 
+def generate_homepage_summary(
+    technique_slug: str,
+    plan: dict,
+    overview: dict,
+    force: bool = False,
+    provider_override: str | None = None,
+) -> dict:
+    """Generate short bullet-point summary for homepage cards."""
+    out_dir = CONTENT_DIR / technique_slug
+    out_dir.mkdir(parents=True, exist_ok=True)
+    artifact_path = out_dir / "homepage_summary.json"
+
+    if artifact_path.exists() and not force:
+        logger.info(
+            "Homepage summary already exists for %s, skipping", technique_slug
+        )
+        return json.loads(artifact_path.read_text())
+
+    logger.info("Generating homepage summary for %s", technique_slug)
+    prompt_template = _load_prompt("homepage_summary_prompt.md")
+    overview_summary = overview.get("summary", "")
+    user_prompt = (
+        prompt_template.replace("{{plan_json}}", json.dumps(plan, indent=2))
+        .replace("{{overview_summary}}", overview_summary)
+    )
+    system_prompt = (
+        "You are an expert in optimization algorithms. Respond with valid JSON only."
+    )
+
+    provider = get_provider("homepage_summary", override=provider_override)
+    schema = SCHEMAS["homepage_summary"]
+    result = generate_with_retry(provider, system_prompt, user_prompt, schema)
+
+    artifact_path.write_text(json.dumps(result, indent=2))
+    logger.info("Saved homepage_summary to %s", artifact_path)
+    return result
+
+
 def generate_infographic_image(
     technique_slug: str,
     technique_name: str,
@@ -168,5 +208,33 @@ def generate_infographic_image(
     errors = validate_infographic_image(result_path)
     if errors:
         logger.warning("Image validation warnings for %s: %s", technique_slug, errors)
+
+    return result_path
+
+
+def generate_preview_image(
+    technique_slug: str,
+    technique_name: str,
+    force: bool = False,
+) -> str | None:
+    """Generate a homepage preview thumbnail using Nano Banana. Consistent theme across all techniques."""
+    out_dir = CONTENT_DIR / technique_slug
+    image_path = out_dir / "preview.png"
+
+    if image_path.exists() and not force:
+        logger.info("Preview image already exists for %s, skipping", technique_slug)
+        return str(image_path)
+
+    logger.info("Generating preview image for %s", technique_slug)
+
+    prompt_template = _load_prompt("preview_image_prompt.md")
+    prompt = prompt_template.replace("{{technique_name}}", technique_name)
+
+    provider = get_provider("infographic_image")
+    result_path = generate_image_with_retry(provider, prompt, str(image_path))
+
+    errors = validate_infographic_image(result_path)
+    if errors:
+        logger.warning("Preview image validation warnings for %s: %s", technique_slug, errors)
 
     return result_path
