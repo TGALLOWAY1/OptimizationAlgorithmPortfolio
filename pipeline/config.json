@@ -42,6 +42,7 @@
     "math_tutor": "openai",
     "compare": "openai",
     "study_plan": "openai",
-    "adapt_code": "openai"
+    "adapt_code": "openai",
+    "judge": "openai"
   }
 }

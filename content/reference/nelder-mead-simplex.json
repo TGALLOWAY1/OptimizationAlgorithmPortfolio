@@ -1,0 +1,18 @@
+{
+  "name": "Nelder-Mead Simplex",
+  "key_facts": [
+    "Nelder-Mead is a direct search method that does not require gradient computation",
+    "It operates on a simplex (a polytope with n+1 vertices in n dimensions)",
+    "Key operations include reflection, expansion, contraction, and shrinkage",
+    "The algorithm was proposed by John Nelder and Roger Mead in 1965",
+    "It is commonly used for low-dimensional optimization problems",
+    "Nelder-Mead does not guarantee convergence to a local minimum in general",
+    "The method is also known as the downhill simplex method or amoeba method"
+  ],
+  "forbidden_claims": [
+    "Nelder-Mead requires gradient information",
+    "Nelder-Mead guarantees convergence to the global optimum",
+    "Nelder-Mead is efficient in high-dimensional spaces",
+    "Nelder-Mead is a linear programming algorithm (it is not the Simplex method for LP)"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Gradient Descent",
+  "key_facts": [
+    "Gradient Descent is a first-order iterative optimization algorithm for finding a local minimum of a differentiable function",
+    "The update rule is: x_{n+1} = x_n - alpha * gradient(f(x_n)), where alpha is the learning rate",
+    "Variants include Stochastic Gradient Descent (SGD), Mini-batch GD, and Batch GD",
+    "Common extensions include momentum, Nesterov accelerated gradient, Adam, RMSProp, and AdaGrad",
+    "Convergence rate depends on the learning rate, function curvature, and conditioning",
+    "For convex functions, gradient descent converges to the global minimum",
+    "The learning rate is a critical hyperparameter that affects convergence speed and stability"
+  ],
+  "forbidden_claims": [
+    "Gradient Descent works on non-differentiable functions without modification",
+    "Gradient Descent always finds the global optimum for non-convex functions",
+    "Gradient Descent is a derivative-free optimization method",
+    "Gradient Descent was invented in the 21st century"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Simulated Annealing",
+  "key_facts": [
+    "Simulated Annealing is a probabilistic optimization algorithm inspired by the annealing process in metallurgy",
+    "It accepts worse solutions with a probability that decreases over time (controlled by a temperature parameter)",
+    "The acceptance probability follows the Metropolis criterion: exp(-delta_E / T)",
+    "The cooling schedule determines how the temperature decreases over iterations",
+    "It can escape local optima by accepting uphill moves early in the search",
+    "Simulated Annealing was independently introduced by Kirkpatrick et al. (1983) and Černý (1985)",
+    "Under certain conditions on the cooling schedule, SA converges to the global optimum in probability"
+  ],
+  "forbidden_claims": [
+    "Simulated Annealing requires gradient computation",
+    "Simulated Annealing always finds the global optimum in finite time",
+    "Simulated Annealing is a population-based algorithm",
+    "The temperature in SA must always decrease monotonically"
+  ]
+}

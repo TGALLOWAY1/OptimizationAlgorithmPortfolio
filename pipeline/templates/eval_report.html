@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Report — Optimization Algorithm Portfolio</title>
+    <style>
+        :root {
+            --primary: #1a237e;
+            --success: #2e7d32;
+            --warning: #f57f17;
+            --danger: #c62828;
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #212121;
+            --muted: #757575;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
+        h1 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+        .disclaimer {
+            background: #fff3e0;
+            border-left: 4px solid var(--warning);
+            padding: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .summary-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .summary-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .summary-card .label {
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+        .technique-section {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .technique-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .technique-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-passed { background: #e8f5e9; color: var(--success); }
+        .badge-failed { background: #ffebee; color: var(--danger); }
+        .artifact-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .artifact-table th,
+        .artifact-table td {
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+        .artifact-table th {
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        .status-passed { color: var(--success); font-weight: 600; }
+        .status-failed { color: var(--danger); font-weight: 600; }
+        .status-missing { color: var(--muted); font-style: italic; }
+        .methodology {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .methodology h2 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        .methodology ul {
+            padding-left: 1.5rem;
+        }
+        .methodology li {
+            margin-bottom: 0.5rem;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quality Report</h1>
+        <p class="subtitle">
+            Automated evaluation results for generated educational content.
+            {% if timestamp %}Last evaluated: {{ timestamp }}{% endif %}
+        </p>
+
+        <div class="disclaimer">
+            This report is generated automatically by the evaluation pipeline.
+            Scores reflect automated rubric-based assessment and do not constitute
+            a guarantee of content accuracy. Evaluation uses schema validation,
+            deterministic static checks, code execution testing, and LLM-based
+            rubric scoring grounded in canonical reference facts.
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="number">{{ total_techniques }}</div>
+                <div class="label">Algorithms Evaluated</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ total_artifacts }}</div>
+                <div class="label">Total Artifacts</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ total_passed }}</div>
+                <div class="label">Artifacts Passed</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ total_retries }}</div>
+                <div class="label">Total Retries</div>
+            </div>
+        </div>
+
+        {% for technique in techniques %}
+        <div class="technique-section">
+            <div class="technique-header">
+                <span class="technique-name">{{ technique.name }}</span>
+                {% if technique.overall_passed %}
+                <span class="badge badge-passed">Passed</span>
+                {% else %}
+                <span class="badge badge-failed">Failed</span>
+                {% endif %}
+            </div>
+            <table class="artifact-table">
+                <thead>
+                    <tr>
+                        <th>Artifact</th>
+                        <th>Status</th>
+                        <th>Attempts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for artifact in technique.artifacts %}
+                    <tr>
+                        <td>{{ artifact.type }}</td>
+                        <td>
+                            {% if artifact.status == "passed" %}
+                            <span class="status-passed">Passed</span>
+                            {% elif artifact.status == "missing" %}
+                            <span class="status-missing">Missing</span>
+                            {% else %}
+                            <span class="status-failed">{{ artifact.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ artifact.attempts }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+
+        <div class="methodology">
+            <h2>Validation Methodology</h2>
+            <ul>
+                <li><strong>Schema Validation</strong> — All artifacts are validated against strict JSON schemas ensuring required fields, correct types, and structural integrity.</li>
+                <li><strong>Static Checks</strong> — Deterministic analysis detects placeholders (TODO/TBD), unbalanced LaTeX delimiters, duplicated paragraphs, and content quality thresholds.</li>
+                <li><strong>Code Execution</strong> — Python implementation examples are executed in isolated subprocesses with timeout enforcement and dependency checking.</li>
+                <li><strong>LLM Judge Evaluation</strong> — A high-reasoning LLM evaluates artifacts against rubric criteria (factual accuracy, mathematical correctness, clarity, code quality) grounded in canonical reference facts.</li>
+                <li><strong>Iterative Improvement</strong> — Artifacts that fail evaluation are automatically revised using judge feedback, with up to 3 total attempts per artifact.</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        Optimization Algorithm Portfolio — Automated Quality Report
+    </footer>
+</body>
+</html>

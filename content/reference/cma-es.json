@@ -1,0 +1,18 @@
+{
+  "name": "CMA-ES",
+  "key_facts": [
+    "CMA-ES (Covariance Matrix Adaptation Evolution Strategy) is a derivative-free optimization algorithm",
+    "It adapts a full covariance matrix to guide the sampling of candidate solutions",
+    "It is commonly used for non-convex, non-separable, and ill-conditioned black-box optimization",
+    "CMA-ES was developed by Nikolaus Hansen and Andreas Ostermeier in the 1990s",
+    "The algorithm maintains and updates a mean vector, step size, and covariance matrix",
+    "It is considered state-of-the-art for continuous black-box optimization in low-to-moderate dimensions",
+    "CMA-ES is invariant to order-preserving transformations of the objective function"
+  ],
+  "forbidden_claims": [
+    "CMA-ES requires gradients of the objective function",
+    "CMA-ES guarantees finding the global optimum",
+    "CMA-ES only works with diagonal covariance matrices",
+    "CMA-ES is a genetic algorithm"
+  ]
+}

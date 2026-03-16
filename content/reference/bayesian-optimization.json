@@ -1,0 +1,18 @@
+{
+  "name": "Bayesian Optimization",
+  "key_facts": [
+    "Bayesian Optimization is a sequential model-based optimization strategy for black-box functions",
+    "It uses a surrogate model (typically a Gaussian Process) to approximate the objective function",
+    "An acquisition function (e.g., Expected Improvement, UCB) guides the selection of the next evaluation point",
+    "It is particularly effective for expensive-to-evaluate objective functions",
+    "It balances exploration (sampling uncertain regions) and exploitation (sampling promising regions)",
+    "Bayesian Optimization was introduced by Jonas Mockus and has roots in Bayesian decision theory",
+    "Common surrogate models include Gaussian Processes, Random Forests, and Tree-structured Parzen Estimators"
+  ],
+  "forbidden_claims": [
+    "Bayesian Optimization requires gradients of the objective function",
+    "Bayesian Optimization guarantees finding the global optimum",
+    "Bayesian Optimization scales well to very high dimensions without modification",
+    "Bayesian Optimization is a type of evolutionary algorithm"
+  ]
+}
