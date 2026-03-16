@@ -1,0 +1,28 @@
+{
+  "pass_threshold": 7,
+  "criteria": {
+    "factual_accuracy": {
+      "weight": 0.3,
+      "description": "Are all factual claims accurate and verifiable? Does the content correctly describe the algorithm's behavior, properties, and applications?"
+    },
+    "math_correctness": {
+      "weight": 0.3,
+      "description": "Are mathematical expressions, derivations, and notation correct? Are equations properly formatted and steps logically sound?"
+    },
+    "clarity": {
+      "weight": 0.25,
+      "description": "Is the content clear, well-organized, and pedagogically effective? Does it build understanding progressively?"
+    },
+    "code_quality": {
+      "weight": 0.15,
+      "description": "Is the code correct, readable, well-documented, and pedagogically aligned with the explanatory text?"
+    }
+  },
+  "artifact_criteria_map": {
+    "overview": ["factual_accuracy", "clarity"],
+    "math_deep_dive": ["factual_accuracy", "math_correctness", "clarity"],
+    "implementation": ["factual_accuracy", "code_quality", "clarity"],
+    "infographic_spec": ["factual_accuracy", "clarity"],
+    "quiz": ["factual_accuracy", "clarity"]
+  }
+}

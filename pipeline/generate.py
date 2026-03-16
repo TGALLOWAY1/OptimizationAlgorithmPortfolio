@@ -46,6 +46,16 @@ def main():
         action="store_true",
         help="Skip Nano Banana Pro image generation",
     )
+    parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Run the evaluation pipeline after generation",
+    )
+    parser.add_argument(
+        "--skip-judge",
+        action="store_true",
+        help="Skip LLM judge evaluation (schema + static checks only)",
+    )
     args = parser.parse_args()
 
     config = load_config()
@@ -60,6 +70,8 @@ def main():
         techniques = matching
 
     stats = {"generated": 0, "skipped": 0, "failed": 0}
+
+    all_technique_artifacts: dict[str, dict[str, dict]] = {}
 
     for technique_name in techniques:
         slug = slugify(technique_name)
@@ -80,6 +92,7 @@ def main():
 
         # Step 2: Generate each artifact type
         infographic_spec = None
+        technique_artifacts: dict[str, dict] = {}
         for artifact_type in artifact_types:
             try:
                 result = generate_artifact(
@@ -91,6 +104,7 @@ def main():
                 )
                 if artifact_type == "infographic_spec":
                     infographic_spec = result
+                technique_artifacts[artifact_type] = result
                 stats["generated"] += 1
             except Exception as e:
                 logger.error(
@@ -100,6 +114,8 @@ def main():
                     e,
                 )
                 stats["failed"] += 1
+
+        all_technique_artifacts[slug] = technique_artifacts
 
         # Step 3: Generate infographic image
         if not args.skip_images and infographic_spec:
@@ -116,13 +132,81 @@ def main():
                 )
                 stats["failed"] += 1
 
-    logger.info("=== Pipeline Summary ===")
+    logger.info("=== Generation Summary ===")
     logger.info(
         "Generated: %d | Skipped: %d | Failed: %d",
         stats["generated"],
         stats["skipped"],
         stats["failed"],
     )
+
+    # Step 4: Run evaluation pipeline if requested
+    if args.evaluate:
+        _run_evaluation(
+            techniques,
+            artifact_types,
+            all_technique_artifacts,
+            provider_override=args.provider,
+            skip_judge=args.skip_judge,
+        )
+
+
+def _run_evaluation(
+    techniques: list[str],
+    artifact_types: list[str],
+    all_artifacts: dict[str, dict[str, dict]],
+    provider_override: str | None = None,
+    skip_judge: bool = False,
+) -> None:
+    """Run the evaluation pipeline on generated artifacts."""
+    from pipeline.evaluate import evaluate_technique, save_metrics
+
+    logger.info("=== Starting Evaluation Pipeline ===")
+
+    metrics: dict[str, dict] = {"techniques": {}}
+    eval_stats = {"passed": 0, "failed": 0, "total": 0}
+
+    for technique_name in techniques:
+        slug = slugify(technique_name)
+        artifacts = all_artifacts.get(slug, {})
+        if not artifacts:
+            logger.warning("No artifacts to evaluate for %s", technique_name)
+            continue
+
+        result = evaluate_technique(
+            slug,
+            artifact_types,
+            artifacts,
+            provider_override=provider_override,
+            skip_judge=skip_judge,
+        )
+
+        metrics["techniques"][slug] = {
+            "artifacts": result["artifacts"],
+        }
+
+        for art_type, art_result in result["artifacts"].items():
+            eval_stats["total"] += 1
+            if art_result["status"] == "passed":
+                eval_stats["passed"] += 1
+            else:
+                eval_stats["failed"] += 1
+
+    save_metrics(metrics)
+
+    logger.info("=== Evaluation Summary ===")
+    logger.info(
+        "Passed: %d | Failed: %d | Total: %d",
+        eval_stats["passed"],
+        eval_stats["failed"],
+        eval_stats["total"],
+    )
+
+    if eval_stats["failed"] > 0:
+        logger.warning(
+            "%d artifact(s) failed evaluation — site build may be blocked",
+            eval_stats["failed"],
+        )
 
 
 if __name__ == "__main__":

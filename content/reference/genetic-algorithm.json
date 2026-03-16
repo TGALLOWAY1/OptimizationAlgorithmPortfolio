@@ -1,0 +1,18 @@
+{
+  "name": "Genetic Algorithm",
+  "key_facts": [
+    "Genetic Algorithms are population-based metaheuristic optimization methods inspired by natural selection",
+    "Key operations include selection, crossover (recombination), and mutation",
+    "Solutions are encoded as chromosomes (bit strings, real-valued vectors, or other representations)",
+    "Fitness function evaluates the quality of each individual in the population",
+    "Selection methods include tournament selection, roulette wheel selection, and rank-based selection",
+    "Genetic Algorithms were popularized by John Holland in the 1970s",
+    "They are derivative-free and can handle discrete, continuous, and mixed optimization problems"
+  ],
+  "forbidden_claims": [
+    "Genetic Algorithms require gradient information",
+    "Genetic Algorithms always converge to the global optimum",
+    "Genetic Algorithms are only applicable to binary-encoded problems",
+    "Genetic Algorithms were invented by Charles Darwin"
+  ]
+}

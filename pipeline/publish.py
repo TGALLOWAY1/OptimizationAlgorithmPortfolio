@@ -115,6 +115,76 @@ def publish():
     compare_path.write_text(compare_html)
     logger.info("Published compare page")
 
+    # Render quality report if metrics exist
+    _publish_quality_report(env)
+
+
+def _publish_quality_report(env: Environment) -> None:
+    """Render the quality report page from evaluation metrics."""
+    metrics_path = Path("content/evaluation_metrics.json")
+    if not metrics_path.exists():
+        logger.info("No evaluation metrics found, skipping quality report")
+        return
+
+    try:
+        metrics = json.loads(metrics_path.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning("Could not read evaluation metrics: %s", e)
+        return
+
+    report_template = env.get_template("eval_report.html")
+
+    # Build template data from metrics
+    technique_data = []
+    total_artifacts = 0
+    total_passed = 0
+    total_retries = 0
+
+    for slug, tech_metrics in metrics.get("techniques", {}).items():
+        tech_name = slug.replace("-", " ").title()
+        artifacts_list = []
+        tech_passed = True
+
+        for art_type, art_info in tech_metrics.get("artifacts", {}).items():
+            status = art_info.get("status", "unknown")
+            attempts = art_info.get("attempts", 0)
+            total_artifacts += 1
+            total_retries += max(0, attempts - 1)
+
+            if status == "passed":
+                total_passed += 1
+            else:
+                tech_passed = False
+
+            artifacts_list.append({
+                "type": art_type.replace("_", " ").title(),
+                "status": status,
+                "attempts": attempts,
+            })
+
+        technique_data.append({
+            "name": tech_name,
+            "overall_passed": tech_passed,
+            "artifacts": artifacts_list,
+        })
+
+    import datetime
+
+    report_html = report_template.render(
+        timestamp=datetime.datetime.now(datetime.timezone.utc).strftime(
+            "%Y-%m-%d %H:%M UTC"
+        ),
+        total_techniques=len(technique_data),
+        total_artifacts=total_artifacts,
+        total_passed=total_passed,
+        total_retries=total_retries,
+        techniques=technique_data,
+    )
+
+    report_path = SITE_DIR / "quality-report.html"
+    report_path.write_text(report_html)
+    logger.info("Published quality report page")
+
 
 if __name__ == "__main__":
     publish()

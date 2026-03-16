@@ -1,0 +1,18 @@
+{
+  "name": "Differential Evolution",
+  "key_facts": [
+    "Differential Evolution (DE) is a population-based stochastic optimization algorithm for continuous spaces",
+    "It uses vector differences between population members for perturbation (mutation)",
+    "Key operations are mutation, crossover (binomial or exponential), and selection",
+    "DE was introduced by Storn and Price in 1997",
+    "Control parameters include the mutation factor (F), crossover rate (CR), and population size (NP)",
+    "DE is derivative-free and robust for noisy, multimodal, and non-differentiable objective functions",
+    "Common variants include DE/rand/1, DE/best/1, and DE/current-to-best/1"
+  ],
+  "forbidden_claims": [
+    "Differential Evolution requires gradient information",
+    "Differential Evolution guarantees the global optimum",
+    "Differential Evolution is only applicable to discrete optimization",
+    "Differential Evolution does not use a population"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Particle Swarm Optimization",
+  "key_facts": [
+    "Particle Swarm Optimization (PSO) is a population-based stochastic optimization technique inspired by social behavior of bird flocking",
+    "Each particle maintains a position and velocity in the search space",
+    "Particles are influenced by their personal best position and the global best position found by the swarm",
+    "Key parameters include inertia weight, cognitive coefficient, and social coefficient",
+    "PSO was introduced by Kennedy and Eberhart in 1995",
+    "PSO is derivative-free and works well for continuous optimization problems",
+    "Velocity update combines inertia, personal experience, and social influence"
+  ],
+  "forbidden_claims": [
+    "PSO requires gradient information",
+    "PSO guarantees convergence to the global optimum",
+    "PSO uses crossover and mutation operators like genetic algorithms",
+    "PSO was inspired by ant colony behavior"
+  ]
+}
