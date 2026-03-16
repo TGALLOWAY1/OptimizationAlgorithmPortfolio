@@ -19,6 +19,44 @@
         .card p { font-size: 0.9rem; color: #555; }
         .card .thumb { width: 100%; height: 160px; object-fit: cover; }
         footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; }
+
+        /* Action bar */
+        .action-bar { display: flex; gap: 1rem; justify-content: center; margin: 2rem 0 1rem; flex-wrap: wrap; }
+        .action-bar__btn { padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; border: 2px solid #1a237e; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .action-bar__btn--primary { background: #1a237e; color: white; }
+        .action-bar__btn--primary:hover { background: #283593; }
+        .action-bar__btn--outline { background: white; color: #1a237e; }
+        .action-bar__btn--outline:hover { background: #e8eaf6; }
+
+        /* Study Plan Modal */
+        .sp-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; }
+        .sp-overlay.open { display: flex; }
+        .sp-modal { background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; }
+        .sp-modal__title { font-size: 1.3rem; color: #1a237e; margin-bottom: 0.5rem; }
+        .sp-modal__subtitle { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+        .sp-modal__step { display: none; }
+        .sp-modal__step.active { display: block; }
+        .sp-modal__label { font-weight: 600; margin-bottom: 0.5rem; display: block; }
+        .sp-modal__textarea { width: 100%; padding: 0.75rem; border: 2px solid #d0d5dd; border-radius: 8px; font-family: inherit; font-size: 1rem; min-height: 100px; resize: vertical; margin-bottom: 1rem; }
+        .sp-modal__textarea:focus { outline: none; border-color: #1a237e; }
+        .sp-modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+        .sp-modal__btn { padding: 0.65rem 1.25rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; }
+        .sp-modal__btn--next { background: #1a237e; color: white; }
+        .sp-modal__btn--next:hover { background: #283593; }
+        .sp-modal__btn--back { background: #e0e0e0; color: #333; }
+        .sp-modal__btn--back:hover { background: #bdbdbd; }
+        .sp-modal__btn--cancel { background: transparent; color: #666; }
+
+        /* Study Plan Result - Timeline */
+        .sp-timeline { margin: 1rem 0; }
+        .sp-timeline__item { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+        .sp-timeline__marker { flex-shrink: 0; width: 40px; height: 40px; background: #1a237e; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; position: relative; }
+        .sp-timeline__item:not(:last-child) .sp-timeline__marker::after { content: ''; position: absolute; top: 40px; left: 50%; width: 2px; height: calc(100% + 0.75rem); background: #c5cae9; transform: translateX(-50%); }
+        .sp-timeline__content { flex: 1; padding-top: 0.25rem; }
+        .sp-timeline__title { font-weight: 700; color: #1a237e; }
+        .sp-timeline__title a { color: #1a237e; text-decoration: underline; }
+        .sp-timeline__reason { font-size: 0.9rem; color: #555; margin-top: 0.25rem; }
+        .sp-rationale { background: #e8eaf6; padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem; color: #333; }
     </style>
 </head>
 <body>
@@ -28,6 +66,12 @@
     </header>
     <div class="container">
         {% include "recommender_component.html" %}
+
+        <div class="action-bar">
+            <button class="action-bar__btn action-bar__btn--outline" onclick="window.location.href='compare.html'">Compare Algorithms</button>
+            <button class="action-bar__btn action-bar__btn--outline" onclick="openStudyPlan()">Generate Study Plan</button>
+        </div>
+
         <div class="grid">
             {% for t in techniques %}
             <div class="card">
@@ -42,6 +86,126 @@
             {% endfor %}
         </div>
     </div>
+
+    <!-- Study Plan Wizard Modal -->
+    <div class="sp-overlay" id="sp-overlay">
+        <div class="sp-modal">
+            <h3 class="sp-modal__title">Generate Your Study Plan</h3>
+            <p class="sp-modal__subtitle">Tell us about yourself so we can create a personalized learning roadmap.</p>
+
+            <!-- Step 1: Background -->
+            <div class="sp-modal__step active" id="sp-step-1">
+                <label class="sp-modal__label">Your Background</label>
+                <textarea class="sp-modal__textarea" id="sp-background" placeholder="e.g., I have a BS in Computer Science, familiar with calculus and basic probability. I've used gradient descent in ML courses."></textarea>
+                <div class="sp-modal__actions">
+                    <button class="sp-modal__btn sp-modal__btn--cancel" onclick="closeStudyPlan()">Cancel</button>
+                    <button class="sp-modal__btn sp-modal__btn--next" onclick="spNextStep()">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Goals -->
+            <div class="sp-modal__step" id="sp-step-2">
+                <label class="sp-modal__label">Your Learning Goals</label>
+                <textarea class="sp-modal__textarea" id="sp-goals" placeholder="e.g., I want to learn how to optimize hyperparameters for deep learning models and understand evolutionary strategies for robotics."></textarea>
+                <div class="sp-modal__actions">
+                    <button class="sp-modal__btn sp-modal__btn--back" onclick="spPrevStep()">Back</button>
+                    <button class="sp-modal__btn sp-modal__btn--next" id="sp-submit-btn" onclick="submitStudyPlan()">Generate Plan</button>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="sp-modal__step" id="sp-step-result">
+                <div id="sp-loading" style="text-align:center;padding:2rem;color:#666;" hidden>Generating your study plan...</div>
+                <div id="sp-result"></div>
+                <div class="sp-modal__actions">
+                    <button class="sp-modal__btn sp-modal__btn--cancel" onclick="closeStudyPlan()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer>Optimization Algorithm Portfolio</footer>
+
+    <script>
+    /* ── Study Plan Wizard ─────────────────────────────────── */
+    function openStudyPlan() {
+        document.getElementById('sp-overlay').classList.add('open');
+        showSpStep(1);
+    }
+
+    function closeStudyPlan() {
+        document.getElementById('sp-overlay').classList.remove('open');
+        showSpStep(1);
+        document.getElementById('sp-background').value = '';
+        document.getElementById('sp-goals').value = '';
+        document.getElementById('sp-result').innerHTML = '';
+    }
+
+    function showSpStep(n) {
+        document.querySelectorAll('.sp-modal__step').forEach(function(s) { s.classList.remove('active'); });
+        var stepId = n === 'result' ? 'sp-step-result' : 'sp-step-' + n;
+        document.getElementById(stepId).classList.add('active');
+    }
+
+    function spNextStep() {
+        var bg = document.getElementById('sp-background').value.trim();
+        if (!bg) { alert('Please describe your background.'); return; }
+        showSpStep(2);
+    }
+
+    function spPrevStep() {
+        showSpStep(1);
+    }
+
+    function submitStudyPlan() {
+        var background = document.getElementById('sp-background').value.trim();
+        var goals = document.getElementById('sp-goals').value.trim();
+        if (!goals) { alert('Please describe your learning goals.'); return; }
+
+        showSpStep('result');
+        var loading = document.getElementById('sp-loading');
+        var resultDiv = document.getElementById('sp-result');
+        loading.hidden = false;
+        resultDiv.innerHTML = '';
+
+        fetch('/api/study_plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ background: background, goals: goals })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading.hidden = true;
+            if (data.error) {
+                resultDiv.innerHTML = '<p style="color:#d32f2f;">' + escapeHtml(data.error) + '</p>';
+                return;
+            }
+            var html = '<div class="sp-timeline">';
+            (data.roadmap || []).forEach(function(item) {
+                html += '<div class="sp-timeline__item">' +
+                    '<div class="sp-timeline__marker">' + item.order + '</div>' +
+                    '<div class="sp-timeline__content">' +
+                    '<div class="sp-timeline__title"><a href="' + encodeURI(item.slug) + '.html">' + escapeHtml(item.title) + '</a></div>' +
+                    '<div class="sp-timeline__reason">' + escapeHtml(item.reason) + '</div>' +
+                    '</div></div>';
+            });
+            html += '</div>';
+            if (data.rationale) {
+                html += '<div class="sp-rationale">' + escapeHtml(data.rationale) + '</div>';
+            }
+            resultDiv.innerHTML = html;
+        })
+        .catch(function() {
+            loading.hidden = true;
+            resultDiv.innerHTML = '<p style="color:#d32f2f;">Failed to generate study plan.</p>';
+        });
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+    </script>
 </body>
 </html>

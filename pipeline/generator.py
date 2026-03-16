@@ -85,6 +85,7 @@ def generate_artifact(
         "math_deep_dive": "math_prompt.md",
         "implementation": "implementation_prompt.md",
         "infographic_spec": "infographic_prompt.md",
+        "quiz": "quiz_prompt.md",
     }
     prompt_file = prompt_map.get(artifact_type)
     if not prompt_file:

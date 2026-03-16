@@ -96,7 +96,20 @@ MATH_DEEP_DIVE_SCHEMA = {
         "markdown": {"type": "string", "minLength": 800},
         "key_equations": {
             "type": "array",
-            "items": {"type": "string"},
+            "items": {
+                "type": "object",
+                "required": ["equation", "label", "step_by_step_derivation"],
+                "properties": {
+                    "equation": {"type": "string", "minLength": 1},
+                    "label": {"type": "string", "minLength": 1},
+                    "step_by_step_derivation": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 2,
+                    },
+                },
+                "additionalProperties": False,
+            },
             "minItems": 1,
         },
         "worked_examples": {
@@ -122,6 +135,7 @@ IMPLEMENTATION_SCHEMA = {
         "python_examples",
         "libraries",
         "pseudo_code",
+        "code_variations",
     ],
     "properties": {
         "technique_slug": {"type": "string", "minLength": 1},
@@ -138,6 +152,71 @@ IMPLEMENTATION_SCHEMA = {
             "minItems": 1,
         },
         "pseudo_code": {"type": "string", "minLength": 1},
+        "code_variations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["framework", "label", "code"],
+                "properties": {
+                    "framework": {"type": "string", "minLength": 1},
+                    "label": {"type": "string", "minLength": 1},
+                    "code": {"type": "string", "minLength": 1},
+                },
+                "additionalProperties": False,
+            },
+            "minItems": 3,
+            "maxItems": 3,
+        },
+    },
+    "additionalProperties": False,
+}
+
+QUIZ_SCHEMA = {
+    "type": "object",
+    "required": [
+        "technique_slug",
+        "artifact_type",
+        "multiple_choice",
+        "flashcards",
+    ],
+    "properties": {
+        "technique_slug": {"type": "string", "minLength": 1},
+        "artifact_type": {"type": "string", "const": "quiz"},
+        "multiple_choice": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["question", "choices", "correct_index", "explanation"],
+                "properties": {
+                    "question": {"type": "string", "minLength": 1},
+                    "choices": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 4,
+                        "maxItems": 4,
+                    },
+                    "correct_index": {"type": "integer", "minimum": 0, "maximum": 3},
+                    "explanation": {"type": "string", "minLength": 1},
+                },
+                "additionalProperties": False,
+            },
+            "minItems": 3,
+            "maxItems": 5,
+        },
+        "flashcards": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["front", "back"],
+                "properties": {
+                    "front": {"type": "string", "minLength": 1},
+                    "back": {"type": "string", "minLength": 1},
+                },
+                "additionalProperties": False,
+            },
+            "minItems": 3,
+            "maxItems": 8,
+        },
     },
     "additionalProperties": False,
 }
@@ -187,4 +266,5 @@ SCHEMAS = {
     "math_deep_dive": MATH_DEEP_DIVE_SCHEMA,
     "implementation": IMPLEMENTATION_SCHEMA,
     "infographic_spec": INFOGRAPHIC_SPEC_SCHEMA,
+    "quiz": QUIZ_SCHEMA,
 }
