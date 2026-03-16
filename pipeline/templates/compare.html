@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare Algorithms — Optimization Algorithm Portfolio</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+        nav { background: #1a237e; color: white; padding: 1rem 2rem; }
+        nav a { color: white; text-decoration: none; }
+        h1 { font-size: 2rem; margin: 1.5rem 0 1rem; color: #1a237e; text-align: center; }
+        footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; }
+
+        /* Selector bar */
+        .compare-selector { display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap; margin: 1.5rem 0 2rem; }
+        .compare-selector select { padding: 0.65rem 1rem; font-size: 1rem; border: 2px solid #d0d5dd; border-radius: 8px; background: white; min-width: 220px; }
+        .compare-selector select:focus { outline: none; border-color: #1a237e; }
+        .compare-selector__vs { font-weight: 700; color: #1a237e; font-size: 1.1rem; }
+        .compare-btn { padding: 0.7rem 1.5rem; background: #1a237e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem; }
+        .compare-btn:hover { background: #283593; }
+        .compare-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Loading & error */
+        .compare-loading { text-align: center; padding: 2rem; color: #666; display: none; }
+        .compare-error { text-align: center; color: #d32f2f; padding: 1rem; display: none; }
+
+        /* Comparison table */
+        .compare-table { width: 100%; border-collapse: collapse; margin: 1rem 0; display: none; }
+        .compare-table th, .compare-table td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .compare-table th { background: #e8eaf6; color: #1a237e; font-weight: 700; }
+        .compare-table th:first-child { width: 120px; background: #f5f5f5; color: #333; }
+        .compare-table td:first-child { font-weight: 600; color: #333; background: #fafafa; }
+        .compare-table .pros { color: #2e7d32; }
+        .compare-table .cons { color: #d32f2f; }
+
+        .compare-summary { background: #e8eaf6; padding: 1rem 1.5rem; border-radius: 8px; margin-top: 1.5rem; display: none; }
+        .compare-summary h3 { color: #1a237e; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+    <nav><a href="index.html">Optimization Algorithm Portfolio</a></nav>
+    <div class="container">
+        <h1>Compare Algorithms</h1>
+
+        <div class="compare-selector">
+            <select id="compare-a">
+                <option value="">Select first algorithm...</option>
+                {% for t in techniques %}
+                <option value="{{ t.slug }}">{{ t.name }}</option>
+                {% endfor %}
+            </select>
+            <span class="compare-selector__vs">vs</span>
+            <select id="compare-b">
+                <option value="">Select second algorithm...</option>
+                {% for t in techniques %}
+                <option value="{{ t.slug }}">{{ t.name }}</option>
+                {% endfor %}
+            </select>
+            <button class="compare-btn" id="compare-btn" onclick="runComparison()">Compare</button>
+        </div>
+
+        <div class="compare-loading" id="compare-loading">Generating comparison...</div>
+        <div class="compare-error" id="compare-error"></div>
+
+        <table class="compare-table" id="compare-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th id="th-a">Algorithm A</th>
+                    <th id="th-b">Algorithm B</th>
+                </tr>
+            </thead>
+            <tbody id="compare-tbody"></tbody>
+        </table>
+
+        <div class="compare-summary" id="compare-summary">
+            <h3>Summary</h3>
+            <p id="compare-summary-text"></p>
+        </div>
+    </div>
+
+    <footer>Optimization Algorithm Portfolio</footer>
+
+    <script>
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
+    function runComparison() {
+        var slugA = document.getElementById('compare-a').value;
+        var slugB = document.getElementById('compare-b').value;
+        var btn = document.getElementById('compare-btn');
+        var loading = document.getElementById('compare-loading');
+        var errorEl = document.getElementById('compare-error');
+        var table = document.getElementById('compare-table');
+        var summary = document.getElementById('compare-summary');
+
+        if (!slugA || !slugB) { alert('Please select two algorithms.'); return; }
+        if (slugA === slugB) { alert('Please select two different algorithms.'); return; }
+
+        errorEl.style.display = 'none';
+        table.style.display = 'none';
+        summary.style.display = 'none';
+        loading.style.display = 'block';
+        btn.disabled = true;
+
+        fetch('/api/compare', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug_a: slugA, slug_b: slugB })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading.style.display = 'none';
+            btn.disabled = false;
+            if (data.error) {
+                errorEl.textContent = data.error;
+                errorEl.style.display = 'block';
+                return;
+            }
+            renderComparison(data);
+        })
+        .catch(function() {
+            loading.style.display = 'none';
+            btn.disabled = false;
+            errorEl.textContent = 'Failed to generate comparison.';
+            errorEl.style.display = 'block';
+        });
+    }
+
+    function renderComparison(data) {
+        document.getElementById('th-a').textContent = data.algorithm_a;
+        document.getElementById('th-b').textContent = data.algorithm_b;
+
+        var tbody = document.getElementById('compare-tbody');
+        tbody.innerHTML = '';
+
+        function addRow(label, cellA, cellB, cls) {
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + escapeHtml(label) + '</td>' +
+                '<td class="' + (cls || '') + '">' + cellA + '</td>' +
+                '<td class="' + (cls || '') + '">' + cellB + '</td>';
+            tbody.appendChild(tr);
+        }
+
+        function listToHtml(arr) {
+            return '<ul>' + arr.map(function(i) { return '<li>' + escapeHtml(i) + '</li>'; }).join('') + '</ul>';
+        }
+
+        addRow('Pros', listToHtml(data.pros_a), listToHtml(data.pros_b), 'pros');
+        addRow('Cons', listToHtml(data.cons_a), listToHtml(data.cons_b), 'cons');
+        addRow('Best For', escapeHtml(data.best_for_a), escapeHtml(data.best_for_b));
+
+        document.getElementById('compare-table').style.display = 'table';
+
+        if (data.summary) {
+            document.getElementById('compare-summary-text').textContent = data.summary;
+            document.getElementById('compare-summary').style.display = 'block';
+        }
+    }
+    </script>
+</body>
+</html>

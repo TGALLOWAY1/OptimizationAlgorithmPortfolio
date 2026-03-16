@@ -86,6 +86,7 @@ def publish():
             math_deep_dive=artifacts.get("math_deep_dive"),
             implementation=artifacts.get("implementation"),
             infographic_spec=artifacts.get("infographic_spec"),
+            quiz=artifacts.get("quiz"),
             has_infographic=has_infographic,
         )
         page_path = SITE_DIR / f"{slug}.html"
@@ -106,6 +107,13 @@ def publish():
     index_path = SITE_DIR / "index.html"
     index_path.write_text(index_html)
     logger.info("Published index page with %d techniques", len(techniques))
+
+    # Render compare page
+    compare_template = env.get_template("compare.html")
+    compare_html = compare_template.render(techniques=techniques)
+    compare_path = SITE_DIR / "compare.html"
+    compare_path.write_text(compare_html)
+    logger.info("Published compare page")
 
 
 if __name__ == "__main__":

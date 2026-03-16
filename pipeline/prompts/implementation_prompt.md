@@ -24,5 +24,9 @@ Return a JSON object with these fields:
   Each example should include comments explaining key steps.
 - **libraries** (array of strings): Relevant Python libraries with brief descriptions (e.g., "scipy.optimize - General-purpose optimization toolkit").
 - **pseudo_code** (string): Language-agnostic pseudocode for the core algorithm. Use clear indentation and standard pseudocode keywords (FUNCTION, FOR, WHILE, IF, RETURN).
+- **code_variations** (array of 3 objects): Three complete implementation variations using different frameworks. Each object has:
+  - "framework" (string): One of "numpy", "pytorch", or "scipy" (use the most relevant trio for this technique — alternatives include "scikit-learn" in place of "scipy" if more appropriate).
+  - "label" (string): A human-readable label (e.g., "NumPy Implementation", "PyTorch Implementation", "SciPy/Scikit-Learn Implementation").
+  - "code" (string): A complete, runnable Python code example using that framework. Include imports, comments, and a brief usage example.
 
 Respond with ONLY the JSON object, no additional text.

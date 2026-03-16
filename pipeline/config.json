@@ -13,7 +13,8 @@
     "overview",
     "math_deep_dive",
     "implementation",
-    "infographic_spec"
+    "infographic_spec",
+    "quiz"
   ],
   "providers": {
     "openai": {
@@ -36,6 +37,11 @@
     "implementation": "gemini",
     "infographic_spec": "gemini",
     "infographic_image": "nano_banana",
-    "recommender": "openai"
+    "quiz": "openai",
+    "recommender": "openai",
+    "math_tutor": "openai",
+    "compare": "openai",
+    "study_plan": "openai",
+    "adapt_code": "openai"
   }
 }

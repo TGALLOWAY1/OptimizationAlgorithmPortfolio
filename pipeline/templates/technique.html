@@ -25,6 +25,76 @@
         .infographic { text-align: center; margin: 2rem 0; }
         .infographic img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; }
+
+        /* Derivation accordion */
+        .derivation-block { margin: 1rem 0; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .derivation-block summary { cursor: pointer; padding: 0.75rem 1rem; background: #f5f5f5; font-weight: 600; color: #283593; list-style: none; display: flex; align-items: center; gap: 0.5rem; }
+        .derivation-block summary::before { content: '\25B6'; font-size: 0.7em; transition: transform 0.2s; }
+        .derivation-block[open] summary::before { transform: rotate(90deg); }
+        .derivation-block .derivation-content { padding: 1rem; background: #fafafa; }
+        .derivation-step { padding: 0.5rem 0; border-bottom: 1px dashed #e0e0e0; }
+        .derivation-step:last-child { border-bottom: none; }
+        .step-number { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; background: #1a237e; color: white; border-radius: 50%; font-size: 0.8rem; font-weight: 700; margin-right: 0.5rem; }
+        .equation-label { font-weight: 600; color: #1a237e; margin-bottom: 0.25rem; }
+
+        /* Code variation tabs */
+        .code-tabs { margin: 1rem 0; }
+        .code-tabs__nav { display: flex; gap: 0; border-bottom: 2px solid #e8eaf6; }
+        .code-tabs__btn { padding: 0.6rem 1.2rem; border: none; background: transparent; cursor: pointer; font-weight: 600; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 0.2s, border-color 0.2s; }
+        .code-tabs__btn:hover { color: #283593; }
+        .code-tabs__btn.active { color: #1a237e; border-bottom-color: #1a237e; }
+        .code-tabs__panel { display: none; }
+        .code-tabs__panel.active { display: block; }
+
+        /* Quiz styles */
+        .quiz-section { margin: 2rem 0; }
+        .quiz-card { background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 1.5rem; margin: 1rem 0; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .quiz-card__question { font-weight: 600; margin-bottom: 1rem; color: #1a1a2e; }
+        .quiz-card__choices { list-style: none; }
+        .quiz-card__choice { padding: 0.6rem 1rem; margin: 0.4rem 0; border: 2px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+        .quiz-card__choice:hover { border-color: #283593; background: #f5f7ff; }
+        .quiz-card__choice.correct { border-color: #2e7d32; background: #e8f5e9; }
+        .quiz-card__choice.incorrect { border-color: #d32f2f; background: #ffebee; }
+        .quiz-card__choice.disabled { pointer-events: none; opacity: 0.7; }
+        .quiz-card__explanation { margin-top: 1rem; padding: 0.75rem; background: #e8eaf6; border-radius: 6px; display: none; }
+        .quiz-card__explanation.visible { display: block; }
+
+        /* Flashcard styles */
+        .flashcard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin: 1rem 0; }
+        .flashcard { perspective: 600px; height: 200px; cursor: pointer; }
+        .flashcard__inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
+        .flashcard.flipped .flashcard__inner { transform: rotateY(180deg); }
+        .flashcard__front, .flashcard__back { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 10px; padding: 1.25rem; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.95rem; }
+        .flashcard__front { background: linear-gradient(135deg, #1a237e, #283593); color: white; font-weight: 600; }
+        .flashcard__back { background: #e8eaf6; color: #1a1a2e; transform: rotateY(180deg); }
+
+        /* Math tutor tooltip */
+        .math-tutor-tooltip { position: absolute; background: #1a237e; color: white; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer; z-index: 100; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .math-tutor-tooltip:hover { background: #283593; }
+
+        /* Math tutor sidebar */
+        .math-tutor-sidebar { position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; background: white; box-shadow: -4px 0 20px rgba(0,0,0,0.15); z-index: 200; transition: right 0.3s ease; overflow-y: auto; padding: 1.5rem; }
+        .math-tutor-sidebar.open { right: 0; }
+        .math-tutor-sidebar__close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666; }
+        .math-tutor-sidebar__title { font-size: 1.1rem; color: #1a237e; margin-bottom: 1rem; padding-right: 2rem; }
+        .math-tutor-sidebar__content { line-height: 1.8; }
+        .math-tutor-sidebar__loading { text-align: center; padding: 2rem; color: #666; }
+
+        /* Adapt code button */
+        .adapt-code-btn { display: inline-block; margin: 0.5rem 0; padding: 0.4rem 0.8rem; background: #e8eaf6; color: #1a237e; border: 1px solid #c5cae9; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+        .adapt-code-btn:hover { background: #c5cae9; }
+
+        /* Adapt code modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal__title { font-size: 1.2rem; color: #1a237e; margin-bottom: 1rem; }
+        .modal__input { width: 100%; padding: 0.75rem; border: 2px solid #d0d5dd; border-radius: 8px; font-family: inherit; font-size: 1rem; margin-bottom: 1rem; }
+        .modal__input:focus { outline: none; border-color: #1a237e; }
+        .modal__btn { padding: 0.7rem 1.5rem; background: #1a237e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .modal__btn:hover { background: #283593; }
+        .modal__btn--cancel { background: #e0e0e0; color: #333; margin-right: 0.5rem; }
+        .modal__btn--cancel:hover { background: #bdbdbd; }
     </style>
 </head>
 <body>
@@ -47,13 +117,29 @@
         {% endif %}
 
         {% if math_deep_dive %}
-        <div class="section">
+        <div class="section" id="math-deep-dive">
             <h2>Mathematical Deep Dive</h2>
             {{ math_deep_dive.markdown | markdown | safe }}
+
             <h3>Key Equations</h3>
             {% for eq in math_deep_dive.key_equations %}
-            <div>{{ eq }}</div>
+            <div class="equation-label">{{ eq.label if eq.label is defined else '' }}</div>
+            <div>{{ eq.equation if eq.equation is defined else eq }}</div>
+            <details class="derivation-block">
+                <summary>Step-by-step derivation</summary>
+                <div class="derivation-content">
+                    {% if eq.step_by_step_derivation is defined %}
+                    {% for step in eq.step_by_step_derivation %}
+                    <div class="derivation-step">
+                        <span class="step-number">{{ loop.index }}</span>
+                        {{ step }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+            </details>
             {% endfor %}
+
             <h3>Worked Examples</h3>
             {% for ex in math_deep_dive.worked_examples %}
             <div>{{ ex }}</div>
@@ -67,6 +153,24 @@
             {{ implementation.markdown | markdown | safe }}
             <h3>Pseudocode</h3>
             <pre><code>{{ implementation.pseudo_code }}</code></pre>
+
+            {% if implementation.code_variations %}
+            <h3>Code Variations</h3>
+            <div class="code-tabs" id="code-variations">
+                <div class="code-tabs__nav">
+                    {% for var in implementation.code_variations %}
+                    <button class="code-tabs__btn{% if loop.first %} active{% endif %}" onclick="switchCodeTab(this, 'variation-{{ loop.index0 }}')">{{ var.label }}</button>
+                    {% endfor %}
+                </div>
+                {% for var in implementation.code_variations %}
+                <div class="code-tabs__panel{% if loop.first %} active{% endif %}" id="variation-{{ loop.index0 }}">
+                    <pre><code>{{ var.code }}</code></pre>
+                    <button class="adapt-code-btn" onclick="openAdaptModal(this)">Adapt Code</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <h3>Python Examples</h3>
             {% for ex in implementation.python_examples %}
             <pre><code>{{ ex }}</code></pre>
@@ -82,7 +186,190 @@
             <img src="images/{{ slug }}/infographic.png" alt="{{ technique_name }} infographic">
         </div>
         {% endif %}
+
+        {% if quiz %}
+        <div class="section quiz-section">
+            <h2>Quiz & Flashcards</h2>
+
+            <h3>Multiple Choice</h3>
+            {% for q in quiz.multiple_choice %}
+            <div class="quiz-card" data-correct="{{ q.correct_index }}">
+                <div class="quiz-card__question">{{ loop.index }}. {{ q.question }}</div>
+                <ul class="quiz-card__choices">
+                    {% for choice in q.choices %}
+                    <li class="quiz-card__choice" data-index="{{ loop.index0 }}" onclick="checkAnswer(this)">{{ choice }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="quiz-card__explanation">{{ q.explanation }}</div>
+            </div>
+            {% endfor %}
+
+            <h3>Flashcards</h3>
+            <p style="color:#666;font-size:0.9rem;">Click a card to flip it.</p>
+            <div class="flashcard-grid">
+                {% for fc in quiz.flashcards %}
+                <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                    <div class="flashcard__inner">
+                        <div class="flashcard__front">{{ fc.front }}</div>
+                        <div class="flashcard__back">{{ fc.back }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
+
+    <!-- Math Tutor Sidebar -->
+    <div class="math-tutor-sidebar" id="math-tutor-sidebar">
+        <button class="math-tutor-sidebar__close" onclick="closeMathTutor()">&times;</button>
+        <h3 class="math-tutor-sidebar__title">Math Tutor</h3>
+        <div class="math-tutor-sidebar__content" id="math-tutor-content">
+            <div class="math-tutor-sidebar__loading" id="math-tutor-loading" hidden>Generating explanation...</div>
+        </div>
+    </div>
+
+    <!-- Adapt Code Modal -->
+    <div class="modal-overlay" id="adapt-modal">
+        <div class="modal">
+            <h3 class="modal__title">Adapt Code to Another Framework</h3>
+            <input class="modal__input" id="adapt-target-framework" placeholder="Target framework (e.g., JAX, TensorFlow, Julia)" />
+            <textarea class="modal__input" id="adapt-instructions" rows="3" placeholder="Additional instructions (optional)"></textarea>
+            <div style="text-align:right;">
+                <button class="modal__btn modal__btn--cancel" onclick="closeAdaptModal()">Cancel</button>
+                <button class="modal__btn" id="adapt-submit-btn" onclick="submitAdapt()">Adapt</button>
+            </div>
+            <pre id="adapt-result" style="display:none;margin-top:1rem;"></pre>
+        </div>
+    </div>
+
     <footer>Optimization Algorithm Portfolio</footer>
+
+    <script>
+    /* ── Code Variation Tabs ───────────────────────────────── */
+    function switchCodeTab(btn, panelId) {
+        var container = btn.closest('.code-tabs');
+        container.querySelectorAll('.code-tabs__btn').forEach(function(b) { b.classList.remove('active'); });
+        container.querySelectorAll('.code-tabs__panel').forEach(function(p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById(panelId).classList.add('active');
+    }
+
+    /* ── Quiz Logic ────────────────────────────────────────── */
+    function checkAnswer(choiceEl) {
+        var card = choiceEl.closest('.quiz-card');
+        var correctIdx = parseInt(card.dataset.correct, 10);
+        var clickedIdx = parseInt(choiceEl.dataset.index, 10);
+        var choices = card.querySelectorAll('.quiz-card__choice');
+        choices.forEach(function(c) { c.classList.add('disabled'); });
+        choices[correctIdx].classList.add('correct');
+        if (clickedIdx !== correctIdx) {
+            choiceEl.classList.add('incorrect');
+        }
+        card.querySelector('.quiz-card__explanation').classList.add('visible');
+    }
+
+    /* ── Math Tutor (text selection) ───────────────────────── */
+    var tutorTooltip = null;
+
+    document.addEventListener('mouseup', function(e) {
+        if (tutorTooltip) { tutorTooltip.remove(); tutorTooltip = null; }
+        var sel = window.getSelection();
+        var text = sel.toString().trim();
+        if (!text || text.length < 3) return;
+
+        var mathSection = document.getElementById('math-deep-dive');
+        if (!mathSection) return;
+        var anchorNode = sel.anchorNode;
+        if (!mathSection.contains(anchorNode)) return;
+
+        var range = sel.getRangeAt(0);
+        var rect = range.getBoundingClientRect();
+        tutorTooltip = document.createElement('div');
+        tutorTooltip.className = 'math-tutor-tooltip';
+        tutorTooltip.textContent = 'Explain this';
+        tutorTooltip.style.top = (window.scrollY + rect.top - 40) + 'px';
+        tutorTooltip.style.left = (window.scrollX + rect.left + rect.width / 2 - 50) + 'px';
+        tutorTooltip.onclick = function() { requestMathTutor(text, anchorNode.parentElement ? anchorNode.parentElement.textContent : ''); };
+        document.body.appendChild(tutorTooltip);
+    });
+
+    function requestMathTutor(selectedText, context) {
+        if (tutorTooltip) { tutorTooltip.remove(); tutorTooltip = null; }
+        var sidebar = document.getElementById('math-tutor-sidebar');
+        var content = document.getElementById('math-tutor-content');
+        var loading = document.getElementById('math-tutor-loading');
+        sidebar.classList.add('open');
+        content.innerHTML = '';
+        content.appendChild(loading);
+        loading.hidden = false;
+
+        fetch('/api/math_tutor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selected_text: selectedText, context: context })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading.hidden = true;
+            if (data.error) { content.innerHTML = '<p style="color:#d32f2f;">' + data.error + '</p>'; return; }
+            content.innerHTML = '<div>' + data.explanation + '</div>';
+            if (typeof renderMathInElement === 'function') { renderMathInElement(content, {delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}]}); }
+        })
+        .catch(function(err) {
+            loading.hidden = true;
+            content.innerHTML = '<p style="color:#d32f2f;">Failed to get explanation.</p>';
+        });
+    }
+
+    function closeMathTutor() {
+        document.getElementById('math-tutor-sidebar').classList.remove('open');
+    }
+
+    /* ── Adapt Code Modal ──────────────────────────────────── */
+    var adaptSourceCode = '';
+
+    function openAdaptModal(btn) {
+        var codeEl = btn.previousElementSibling;
+        adaptSourceCode = codeEl ? codeEl.textContent : '';
+        document.getElementById('adapt-modal').classList.add('open');
+        document.getElementById('adapt-result').style.display = 'none';
+    }
+
+    function closeAdaptModal() {
+        document.getElementById('adapt-modal').classList.remove('open');
+        adaptSourceCode = '';
+    }
+
+    function submitAdapt() {
+        var targetFramework = document.getElementById('adapt-target-framework').value.trim();
+        if (!targetFramework) { alert('Please enter a target framework.'); return; }
+        var instructions = document.getElementById('adapt-instructions').value.trim();
+        var submitBtn = document.getElementById('adapt-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Adapting...';
+
+        fetch('/api/adapt_code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source_code: adaptSourceCode, target_framework: targetFramework, instructions: instructions })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Adapt';
+            var resultEl = document.getElementById('adapt-result');
+            if (data.error) { resultEl.textContent = 'Error: ' + data.error; }
+            else { resultEl.textContent = data.adapted_code; }
+            resultEl.style.display = 'block';
+        })
+        .catch(function() {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Adapt';
+            document.getElementById('adapt-result').textContent = 'Request failed.';
+            document.getElementById('adapt-result').style.display = 'block';
+        });
+    }
+    </script>
 </body>
 </html>
