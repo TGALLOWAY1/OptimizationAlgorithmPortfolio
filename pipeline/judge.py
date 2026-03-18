@@ -141,7 +141,7 @@ def evaluate_artifact(
     technique_slug: str,
     artifact_type: str,
     artifact_data: dict[str, Any],
-    provider_override: str | None = None,
+    provider_override=None,
 ) -> dict[str, Any]:
     """Evaluate an artifact using the LLM judge.
 

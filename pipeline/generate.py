@@ -192,7 +192,7 @@ def _run_evaluation(
     techniques: list[str],
     artifact_types: list[str],
     all_artifacts: dict[str, dict[str, dict]],
-    provider_override: str | None = None,
+    provider_override=None,
     skip_judge: bool = False,
 ) -> None:
     """Run the evaluation pipeline on generated artifacts."""

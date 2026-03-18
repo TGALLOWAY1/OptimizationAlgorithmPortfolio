@@ -148,7 +148,7 @@ _providers: dict[str, LLMProvider | NanoBananaProvider] = {}
 
 
 def get_provider(
-    artifact_type: str, override: str | None = None
+    artifact_type: str, override=None
 ) -> LLMProvider | NanoBananaProvider:
     """Return the correct provider for a given artifact type.
 
