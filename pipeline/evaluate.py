@@ -134,7 +134,7 @@ def evaluate_single_artifact(
     technique_slug: str,
     artifact_type: str,
     artifact_data: dict[str, Any],
-    provider_override: str | None = None,
+    provider_override=None,
     skip_judge: bool = False,
 ) -> dict[str, Any]:
     """Run the full evaluation pipeline on a single artifact.
@@ -272,7 +272,7 @@ def evaluate_technique(
     technique_slug: str,
     artifact_types: list[str],
     artifacts: dict[str, dict[str, Any]],
-    provider_override: str | None = None,
+    provider_override=None,
     skip_judge: bool = False,
 ) -> dict[str, Any]:
     """Evaluate all artifacts for a single technique.

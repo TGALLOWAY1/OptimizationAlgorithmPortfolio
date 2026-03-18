@@ -13,8 +13,7 @@
     "overview",
     "math_deep_dive",
     "implementation",
-    "infographic_spec",
-    "quiz"
+    "infographic_spec"
   ],
   "providers": {
     "openai": {

@@ -36,7 +36,7 @@ def _load_prompt(filename: str) -> str:
 def generate_plan(
     technique_name: str,
     force: bool = False,
-    provider_override: str | None = None,
+    provider_override=None,
 ) -> dict:
     """Generate (or load) the plan for a technique."""
     slug = slugify(technique_name)
@@ -67,7 +67,7 @@ def generate_artifact(
     artifact_type: str,
     plan: dict,
     force: bool = False,
-    provider_override: str | None = None,
+    provider_override=None,
 ) -> dict:
     """Generate a single artifact for a technique."""
     out_dir = CONTENT_DIR / technique_slug
@@ -127,7 +127,7 @@ def generate_homepage_summary(
     plan: dict,
     overview: dict,
     force: bool = False,
-    provider_override: str | None = None,
+    provider_override=None,
 ) -> dict:
     """Generate short bullet-point summary for homepage cards."""
     out_dir = CONTENT_DIR / technique_slug

@@ -19,7 +19,7 @@ def revise_artifact(
     artifact_type: str,
     artifact_data: dict[str, Any],
     judge_result: dict[str, Any],
-    provider_override: str | None = None,
+    provider_override=None,
 ) -> dict[str, Any]:
     """Revise an artifact based on judge feedback.
 
@@ -50,7 +50,7 @@ def retry_loop(
     artifact_type: str,
     artifact_data: dict[str, Any],
     max_attempts: int = MAX_ATTEMPTS,
-    provider_override: str | None = None,
+    provider_override=None,
 ) -> dict[str, Any]:
     """Run the evaluation-revision loop for an artifact.
 
