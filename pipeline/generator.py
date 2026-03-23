@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from pipeline.llm_client import (
     NanoBananaProvider,
     generate_image_with_retry,
     generate_with_retry,
     get_provider,
+    load_config,
 )
 from pipeline.paths import GENERATED_TECHNIQUES_DIR, PROMPTS_DIR, technique_dir
 from pipeline.schemas import SCHEMAS
@@ -20,6 +25,29 @@ from pipeline.validator import validate_artifact, validate_infographic_image
 logger = logging.getLogger(__name__)
 
 CONTENT_DIR = GENERATED_TECHNIQUES_DIR
+ARTIFACT_VERSION = "2"
+MANIFEST_FILENAME = "manifest.json"
+PROMPT_MAP = {
+    "plan": "planner_prompt.md",
+    "overview": "overview_prompt.md",
+    "math_deep_dive": "math_prompt.md",
+    "implementation": "implementation_prompt.md",
+    "infographic_spec": "infographic_prompt.md",
+    "quiz": "quiz_prompt.md",
+    "homepage_summary": "homepage_summary_prompt.md",
+    "infographic_image": "infographic_image_prompt.md",
+    "preview_image": "preview_image_prompt.md",
+}
+
+
+@dataclass(frozen=True)
+class GenerationResult:
+    """Result of generating or reusing an artifact."""
+
+    payload: Any
+    status: str
+    path: Path
+    input_hash: str
 
 
 def slugify(name: str) -> str:
@@ -33,33 +61,177 @@ def _load_prompt(filename: str) -> str:
     return (PROMPTS_DIR / filename).read_text()
 
 
+def _stable_json(value: Any) -> str:
+    """Serialize a value deterministically for hashing and manifest storage."""
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def _timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _manifest_path(out_dir: Path) -> Path:
+    return out_dir / MANIFEST_FILENAME
+
+
+def _load_manifest(out_dir: Path) -> dict[str, Any]:
+    manifest_path = _manifest_path(out_dir)
+    if not manifest_path.exists():
+        return {"artifact_version": ARTIFACT_VERSION, "artifacts": {}}
+
+    try:
+        manifest = json.loads(manifest_path.read_text())
+    except json.JSONDecodeError:
+        logger.warning("Ignoring invalid manifest at %s", manifest_path)
+        return {"artifact_version": ARTIFACT_VERSION, "artifacts": {}}
+
+    manifest.setdefault("artifact_version", ARTIFACT_VERSION)
+    manifest.setdefault("artifacts", {})
+    return manifest
+
+
+def _save_manifest(out_dir: Path, manifest: dict[str, Any]) -> None:
+    manifest["artifact_version"] = ARTIFACT_VERSION
+    manifest["updated_at"] = _timestamp()
+    _manifest_path(out_dir).write_text(json.dumps(manifest, indent=2))
+
+
+def _config_slice(artifact_type: str) -> dict[str, Any]:
+    config = load_config()
+    provider_name = config["artifact_provider_map"].get(artifact_type)
+    provider_config = config.get("providers", {}).get(provider_name, {})
+    return {
+        "artifact_type": artifact_type,
+        "provider_name": provider_name,
+        "provider_config": provider_config,
+    }
+
+
+def _compute_input_hash(
+    artifact_type: str,
+    *,
+    prompt_text: str = "",
+    schema: dict[str, Any] | None = None,
+    config_slice: dict[str, Any] | None = None,
+    material_inputs: dict[str, Any] | None = None,
+) -> str:
+    payload = {
+        "artifact_version": ARTIFACT_VERSION,
+        "artifact_type": artifact_type,
+        "prompt_text": prompt_text,
+        "schema": schema or {},
+        "config_slice": config_slice or {},
+        "material_inputs": material_inputs or {},
+    }
+    return hashlib.sha256(_stable_json(payload).encode("utf-8")).hexdigest()
+
+
+def _provider_metadata(provider: Any) -> dict[str, Any]:
+    return {
+        "provider_class": type(provider).__name__,
+        "model": getattr(provider, "model", None),
+    }
+
+
+def _can_reuse_artifact(
+    *,
+    out_dir: Path,
+    artifact_key: str,
+    artifact_path: Path,
+    input_hash: str,
+    force: bool,
+) -> tuple[bool, dict[str, Any]]:
+    manifest = _load_manifest(out_dir)
+    if force or not artifact_path.exists():
+        return False, manifest
+
+    artifact_meta = manifest.get("artifacts", {}).get(artifact_key)
+    if not artifact_meta:
+        return False, manifest
+
+    if manifest.get("artifact_version") != ARTIFACT_VERSION:
+        return False, manifest
+
+    return artifact_meta.get("input_hash") == input_hash, manifest
+
+
+def _update_manifest(
+    *,
+    out_dir: Path,
+    manifest: dict[str, Any],
+    artifact_key: str,
+    artifact_path: Path,
+    input_hash: str,
+    provider: Any,
+) -> None:
+    manifest.setdefault("artifacts", {})
+    manifest["artifacts"][artifact_key] = {
+        "file": artifact_path.name,
+        "generated_at": _timestamp(),
+        "input_hash": input_hash,
+        **_provider_metadata(provider),
+    }
+    _save_manifest(out_dir, manifest)
+
+
 def generate_plan(
     technique_name: str,
     force: bool = False,
     provider_override=None,
-) -> dict:
+) -> GenerationResult:
     """Generate (or load) the plan for a technique."""
     slug = slugify(technique_name)
     out_dir = technique_dir(slug, CONTENT_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     plan_path = out_dir / "plan.json"
-
-    if plan_path.exists() and not force:
-        logger.info("Plan already exists for %s, skipping", technique_name)
-        return json.loads(plan_path.read_text())
+    prompt_template = _load_prompt(PROMPT_MAP["plan"])
+    schema = SCHEMAS["plan"]
+    input_hash = _compute_input_hash(
+        "plan",
+        prompt_text=prompt_template,
+        schema=schema,
+        config_slice=_config_slice("plan"),
+        material_inputs={"technique_name": technique_name, "slug": slug},
+    )
+    reusable, manifest = _can_reuse_artifact(
+        out_dir=out_dir,
+        artifact_key="plan",
+        artifact_path=plan_path,
+        input_hash=input_hash,
+        force=force,
+    )
+    if reusable:
+        logger.info("Plan up to date for %s, skipping", technique_name)
+        return GenerationResult(
+            payload=json.loads(plan_path.read_text()),
+            status="skipped",
+            path=plan_path,
+            input_hash=input_hash,
+        )
 
     logger.info("Generating plan for %s", technique_name)
-    prompt_template = _load_prompt("planner_prompt.md")
     user_prompt = prompt_template.replace("{{technique_name}}", technique_name)
     system_prompt = "You are an optimization algorithm expert. Respond with valid JSON only."
 
     provider = get_provider("plan", override=provider_override)
-    schema = SCHEMAS["plan"]
     result = generate_with_retry(provider, system_prompt, user_prompt, schema)
 
     plan_path.write_text(json.dumps(result, indent=2))
+    _update_manifest(
+        out_dir=out_dir,
+        manifest=manifest,
+        artifact_key="plan",
+        artifact_path=plan_path,
+        input_hash=input_hash,
+        provider=provider,
+    )
     logger.info("Saved plan to %s", plan_path)
-    return result
+    return GenerationResult(
+        payload=result,
+        status="generated",
+        path=plan_path,
+        input_hash=input_hash,
+    )
 
 
 def generate_artifact(
@@ -68,33 +240,40 @@ def generate_artifact(
     plan: dict,
     force: bool = False,
     provider_override=None,
-) -> dict:
+) -> GenerationResult:
     """Generate a single artifact for a technique."""
     out_dir = technique_dir(technique_slug, CONTENT_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = out_dir / f"{artifact_type}.json"
-
-    if artifact_path.exists() and not force:
-        logger.info(
-            "Artifact %s already exists for %s, skipping",
-            artifact_type,
-            technique_slug,
-        )
-        return json.loads(artifact_path.read_text())
-
-    prompt_map = {
-        "overview": "overview_prompt.md",
-        "math_deep_dive": "math_prompt.md",
-        "implementation": "implementation_prompt.md",
-        "infographic_spec": "infographic_prompt.md",
-        "quiz": "quiz_prompt.md",
-    }
-    prompt_file = prompt_map.get(artifact_type)
+    prompt_file = PROMPT_MAP.get(artifact_type)
     if not prompt_file:
         raise ValueError(f"Unknown artifact type: {artifact_type}")
+    prompt_template = _load_prompt(prompt_file)
+    schema = SCHEMAS[artifact_type]
+    input_hash = _compute_input_hash(
+        artifact_type,
+        prompt_text=prompt_template,
+        schema=schema,
+        config_slice=_config_slice(artifact_type),
+        material_inputs={"plan": plan, "technique_slug": technique_slug},
+    )
+    reusable, manifest = _can_reuse_artifact(
+        out_dir=out_dir,
+        artifact_key=artifact_type,
+        artifact_path=artifact_path,
+        input_hash=input_hash,
+        force=force,
+    )
+    if reusable:
+        logger.info("Artifact %s up to date for %s, skipping", artifact_type, technique_slug)
+        return GenerationResult(
+            payload=json.loads(artifact_path.read_text()),
+            status="skipped",
+            path=artifact_path,
+            input_hash=input_hash,
+        )
 
     logger.info("Generating %s for %s", artifact_type, technique_slug)
-    prompt_template = _load_prompt(prompt_file)
     plan_json = json.dumps(plan, indent=2)
     user_prompt = prompt_template.replace("{{plan_json}}", plan_json).replace(
         "{{technique_slug}}", technique_slug
@@ -104,7 +283,6 @@ def generate_artifact(
     )
 
     provider = get_provider(artifact_type, override=provider_override)
-    schema = SCHEMAS[artifact_type]
     result = generate_with_retry(provider, system_prompt, user_prompt, schema)
 
     # Content validation
@@ -118,8 +296,21 @@ def generate_artifact(
         )
 
     artifact_path.write_text(json.dumps(result, indent=2))
+    _update_manifest(
+        out_dir=out_dir,
+        manifest=manifest,
+        artifact_key=artifact_type,
+        artifact_path=artifact_path,
+        input_hash=input_hash,
+        provider=provider,
+    )
     logger.info("Saved %s to %s", artifact_type, artifact_path)
-    return result
+    return GenerationResult(
+        payload=result,
+        status="generated",
+        path=artifact_path,
+        input_hash=input_hash,
+    )
 
 
 def generate_homepage_summary(
@@ -128,20 +319,41 @@ def generate_homepage_summary(
     overview: dict,
     force: bool = False,
     provider_override=None,
-) -> dict:
+) -> GenerationResult:
     """Generate short bullet-point summary for homepage cards."""
     out_dir = technique_dir(technique_slug, CONTENT_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = out_dir / "homepage_summary.json"
-
-    if artifact_path.exists() and not force:
-        logger.info(
-            "Homepage summary already exists for %s, skipping", technique_slug
+    prompt_template = _load_prompt(PROMPT_MAP["homepage_summary"])
+    schema = SCHEMAS["homepage_summary"]
+    input_hash = _compute_input_hash(
+        "homepage_summary",
+        prompt_text=prompt_template,
+        schema=schema,
+        config_slice=_config_slice("homepage_summary"),
+        material_inputs={
+            "plan": plan,
+            "overview_summary": overview.get("summary", ""),
+            "technique_slug": technique_slug,
+        },
+    )
+    reusable, manifest = _can_reuse_artifact(
+        out_dir=out_dir,
+        artifact_key="homepage_summary",
+        artifact_path=artifact_path,
+        input_hash=input_hash,
+        force=force,
+    )
+    if reusable:
+        logger.info("Homepage summary up to date for %s, skipping", technique_slug)
+        return GenerationResult(
+            payload=json.loads(artifact_path.read_text()),
+            status="skipped",
+            path=artifact_path,
+            input_hash=input_hash,
         )
-        return json.loads(artifact_path.read_text())
 
     logger.info("Generating homepage summary for %s", technique_slug)
-    prompt_template = _load_prompt("homepage_summary_prompt.md")
     overview_summary = overview.get("summary", "")
     user_prompt = (
         prompt_template.replace("{{plan_json}}", json.dumps(plan, indent=2))
@@ -152,12 +364,24 @@ def generate_homepage_summary(
     )
 
     provider = get_provider("homepage_summary", override=provider_override)
-    schema = SCHEMAS["homepage_summary"]
     result = generate_with_retry(provider, system_prompt, user_prompt, schema)
 
     artifact_path.write_text(json.dumps(result, indent=2))
+    _update_manifest(
+        out_dir=out_dir,
+        manifest=manifest,
+        artifact_key="homepage_summary",
+        artifact_path=artifact_path,
+        input_hash=input_hash,
+        provider=provider,
+    )
     logger.info("Saved homepage_summary to %s", artifact_path)
-    return result
+    return GenerationResult(
+        payload=result,
+        status="generated",
+        path=artifact_path,
+        input_hash=input_hash,
+    )
 
 
 def generate_infographic_image(
@@ -165,20 +389,40 @@ def generate_infographic_image(
     technique_name: str,
     infographic_spec: dict,
     force: bool = False,
-) -> str | None:
+) -> GenerationResult:
     """Generate the infographic image using Nano Banana Pro."""
     out_dir = technique_dir(technique_slug, CONTENT_DIR)
     image_path = out_dir / "infographic.png"
-
-    if image_path.exists() and not force:
-        logger.info("Infographic image already exists for %s, skipping", technique_slug)
-        return str(image_path)
+    prompt_template = _load_prompt(PROMPT_MAP["infographic_image"])
+    input_hash = _compute_input_hash(
+        "infographic_image",
+        prompt_text=prompt_template,
+        config_slice=_config_slice("infographic_image"),
+        material_inputs={
+            "technique_name": technique_name,
+            "technique_slug": technique_slug,
+            "infographic_spec": infographic_spec,
+        },
+    )
+    reusable, manifest = _can_reuse_artifact(
+        out_dir=out_dir,
+        artifact_key="infographic_image",
+        artifact_path=image_path,
+        input_hash=input_hash,
+        force=force,
+    )
+    if reusable:
+        logger.info("Infographic image up to date for %s, skipping", technique_slug)
+        return GenerationResult(
+            payload=str(image_path),
+            status="skipped",
+            path=image_path,
+            input_hash=input_hash,
+        )
 
     logger.info("Generating infographic image for %s", technique_slug)
 
     # Build the image prompt from the spec
-    prompt_template = _load_prompt("infographic_image_prompt.md")
-
     formatted_panels = "\n".join(
         f"- Panel {i+1}: {p.get('title', 'Untitled')} — {p.get('content', '')}"
         for i, p in enumerate(infographic_spec.get("panels", []))
@@ -203,38 +447,84 @@ def generate_infographic_image(
 
     provider = get_provider("infographic_image")
     result_path = generate_image_with_retry(provider, prompt, str(image_path))
+    _update_manifest(
+        out_dir=out_dir,
+        manifest=manifest,
+        artifact_key="infographic_image",
+        artifact_path=image_path,
+        input_hash=input_hash,
+        provider=provider,
+    )
 
     # Validate the image
     errors = validate_infographic_image(result_path)
     if errors:
         logger.warning("Image validation warnings for %s: %s", technique_slug, errors)
 
-    return result_path
+    return GenerationResult(
+        payload=result_path,
+        status="generated",
+        path=image_path,
+        input_hash=input_hash,
+    )
 
 
 def generate_preview_image(
     technique_slug: str,
     technique_name: str,
     force: bool = False,
-) -> str | None:
+) -> GenerationResult:
     """Generate a homepage preview thumbnail using Nano Banana. Consistent theme across all techniques."""
     out_dir = technique_dir(technique_slug, CONTENT_DIR)
     image_path = out_dir / "preview.png"
-
-    if image_path.exists() and not force:
-        logger.info("Preview image already exists for %s, skipping", technique_slug)
-        return str(image_path)
+    prompt_template = _load_prompt(PROMPT_MAP["preview_image"])
+    input_hash = _compute_input_hash(
+        "preview_image",
+        prompt_text=prompt_template,
+        config_slice=_config_slice("infographic_image"),
+        material_inputs={
+            "technique_name": technique_name,
+            "technique_slug": technique_slug,
+        },
+    )
+    reusable, manifest = _can_reuse_artifact(
+        out_dir=out_dir,
+        artifact_key="preview_image",
+        artifact_path=image_path,
+        input_hash=input_hash,
+        force=force,
+    )
+    if reusable:
+        logger.info("Preview image up to date for %s, skipping", technique_slug)
+        return GenerationResult(
+            payload=str(image_path),
+            status="skipped",
+            path=image_path,
+            input_hash=input_hash,
+        )
 
     logger.info("Generating preview image for %s", technique_slug)
 
-    prompt_template = _load_prompt("preview_image_prompt.md")
     prompt = prompt_template.replace("{{technique_name}}", technique_name)
 
     provider = get_provider("infographic_image")
     result_path = generate_image_with_retry(provider, prompt, str(image_path))
+    _update_manifest(
+        out_dir=out_dir,
+        manifest=manifest,
+        artifact_key="preview_image",
+        artifact_path=image_path,
+        input_hash=input_hash,
+        provider=provider,
+    )
 
     errors = validate_infographic_image(result_path)
     if errors:
         logger.warning("Preview image validation warnings for %s: %s", technique_slug, errors)
 
-    return result_path
+    return GenerationResult(
+        payload=result_path,
+        status="generated",
+        path=image_path,
+        input_hash=input_hash,
+    )
