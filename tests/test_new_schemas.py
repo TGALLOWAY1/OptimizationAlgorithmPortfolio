@@ -57,6 +57,7 @@ class TestImplementationSchemaUpdated:
             "markdown": "word " * 800 + " ```python\nprint()```",
             "python_examples": ["print('hello')"],
             "libraries": ["scipy.optimize"],
+            "runtime_dependencies": ["scipy"],
             "pseudo_code": "FUNCTION optimize()\n  RETURN x",
             "code_variations": [
                 {"framework": "numpy", "label": "NumPy Implementation", "code": "import numpy as np\n..."},
@@ -71,6 +72,12 @@ class TestImplementationSchemaUpdated:
     def test_missing_code_variations_fails(self):
         data = self._make_valid()
         del data["code_variations"]
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(data, SCHEMAS["implementation"])
+
+    def test_missing_runtime_dependencies_fails(self):
+        data = self._make_valid()
+        del data["runtime_dependencies"]
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate(data, SCHEMAS["implementation"])
 

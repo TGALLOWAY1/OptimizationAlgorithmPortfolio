@@ -209,6 +209,10 @@
             {% endfor %}
             <h3>Libraries</h3>
             <ul>{% for lib in implementation.libraries %}<li>{{ lib }}</li>{% endfor %}</ul>
+            {% if implementation.runtime_dependencies %}
+            <h3>Runtime Dependencies</h3>
+            <ul>{% for dep in implementation.runtime_dependencies %}<li><code>{{ dep }}</code></li>{% endfor %}</ul>
+            {% endif %}
         </div>
         {% endif %}
 

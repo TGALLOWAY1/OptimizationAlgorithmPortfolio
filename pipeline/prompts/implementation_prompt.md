@@ -25,7 +25,8 @@ Return a JSON object with these fields:
   - A minimal from-scratch implementation
   - A practical example using a popular library (e.g., scipy, scikit-optimize, optuna)
   Each example should include comments explaining key steps.
-- **libraries** (array of strings): Relevant Python libraries with brief descriptions (e.g., "scipy.optimize - General-purpose optimization toolkit").
+- **libraries** (array of strings): Reader-facing library guidance with brief descriptions (e.g., "scipy.optimize - General-purpose optimization toolkit").
+- **runtime_dependencies** (array of strings): Raw Python import names needed to run the examples (e.g., ["math"], ["numpy", "scipy"], ["sklearn"]). Use importable module names only, with no descriptions.
 - **pseudo_code** (string): Language-agnostic pseudocode for the core algorithm. Use clear indentation and standard pseudocode keywords (FUNCTION, FOR, WHILE, IF, RETURN).
 - **code_variations** (array of 3 objects): Three complete implementation variations using different frameworks. Each object has:
   - "framework" (string): One of "numpy", "pytorch", or "scipy" (use the most relevant trio for this technique — alternatives include "scikit-learn" in place of "scipy" if more appropriate).

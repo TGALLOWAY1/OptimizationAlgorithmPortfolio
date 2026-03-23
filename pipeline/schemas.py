@@ -134,6 +134,7 @@ IMPLEMENTATION_SCHEMA = {
         "markdown",
         "python_examples",
         "libraries",
+        "runtime_dependencies",
         "pseudo_code",
         "code_variations",
     ],
@@ -150,6 +151,10 @@ IMPLEMENTATION_SCHEMA = {
             "type": "array",
             "items": {"type": "string"},
             "minItems": 1,
+        },
+        "runtime_dependencies": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
         },
         "pseudo_code": {"type": "string", "minLength": 1},
         "code_variations": {

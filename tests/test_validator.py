@@ -49,6 +49,7 @@ class TestImplementationValidator:
             "markdown": "word " * 800 + " ```python\nprint()```",
             "pseudo_code": "FUNCTION optimize()\n  RETURN x",
             "python_examples": ["print('hello')"],
+            "runtime_dependencies": ["math"],
         }
         assert validate_implementation(data) == []
 
@@ -57,9 +58,20 @@ class TestImplementationValidator:
             "markdown": "word " * 900,
             "pseudo_code": "no keywords here",
             "python_examples": ["print('hello')"],
+            "runtime_dependencies": ["math"],
         }
         errors = validate_implementation(data)
         assert any("pseudocode" in e.lower() for e in errors)
+
+    def test_runtime_dependencies_must_be_raw_imports(self):
+        data = {
+            "markdown": "word " * 900,
+            "pseudo_code": "FUNCTION optimize()\n  RETURN x",
+            "python_examples": ["print('hello')"],
+            "runtime_dependencies": ["scipy.optimize - optimization toolkit"],
+        }
+        errors = validate_implementation(data)
+        assert any("raw import name" in e.lower() for e in errors)
 
 
 class TestInfographicSpecValidator:

@@ -48,6 +48,20 @@ def validate_implementation(data: dict) -> list[str]:
     has_python = bool(python_examples) or "```python" in markdown
     if not has_python:
         errors.append("Implementation lacks Python code examples")
+    runtime_dependencies = data.get("runtime_dependencies")
+    if runtime_dependencies is None:
+        errors.append("Implementation is missing runtime_dependencies")
+    elif not isinstance(runtime_dependencies, list):
+        errors.append("Implementation runtime_dependencies must be a list")
+    else:
+        for dep in runtime_dependencies:
+            if not isinstance(dep, str) or not dep.strip():
+                errors.append("Implementation runtime_dependencies must contain non-empty strings")
+                continue
+            if re.search(r"\s|-", dep):
+                errors.append(
+                    f"Runtime dependency '{dep}' must be a raw import name without spaces or descriptions"
+                )
     return errors
 
 
