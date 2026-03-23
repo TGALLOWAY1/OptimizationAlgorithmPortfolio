@@ -1,4 +1,4 @@
-"""Generate the use case matrix via Gemini and save to content/use_case_matrix.json."""
+"""Generate the use case matrix via Gemini and save it under generated outputs."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pipeline.llm_client import get_provider, generate_with_retry
 from pipeline.paths import PROMPTS_DIR, USE_CASE_MATRIX_PATH
+from pipeline.runtime import ensure_supported_python
 
 logging.basicConfig(
     level=logging.INFO,
@@ -85,4 +86,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--force", action="store_true", help="Regenerate even if exists")
     args = parser.parse_args()
+    ensure_supported_python()
     main(force=args.force)

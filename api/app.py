@@ -10,6 +10,7 @@ from api.math_tutor import math_tutor_bp
 from api.study_plan import study_plan_bp
 from api.adapt_code import adapt_code_bp
 from pipeline.paths import SITE_DIR
+from pipeline.runtime import ensure_supported_python
 
 
 def create_app() -> Flask:
@@ -59,6 +60,7 @@ def create_app() -> Flask:
 
 
 if __name__ == "__main__":
+    ensure_supported_python()
     port = int(os.environ.get("PORT", 5000))
     app = create_app()
     app.run(host="0.0.0.0", port=port, debug=True)

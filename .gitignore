@@ -4,6 +4,8 @@ __pycache__/
 site/
 generated/
 content/techniques/
+content/evaluation_metrics.json
+content/use_case_matrix.json
 *.egg-info/
 dist/
 build/

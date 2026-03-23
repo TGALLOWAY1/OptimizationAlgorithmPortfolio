@@ -18,6 +18,7 @@ from pipeline.paths import (
     TEMPLATES_DIR,
     USE_CASE_MATRIX_PATH,
 )
+from pipeline.runtime import ensure_supported_python
 
 logging.basicConfig(
     level=logging.INFO,
@@ -371,4 +372,5 @@ def _publish_quality_report(env: Environment) -> None:
 
 
 if __name__ == "__main__":
+    ensure_supported_python()
     publish()

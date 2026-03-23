@@ -15,6 +15,7 @@ from pipeline.generator import (
     slugify,
 )
 from pipeline.llm_client import load_config
+from pipeline.runtime import ensure_supported_python
 
 logging.basicConfig(
     level=logging.INFO,
@@ -303,4 +304,5 @@ def _run_evaluation(
 
 
 if __name__ == "__main__":
+    ensure_supported_python()
     main()
