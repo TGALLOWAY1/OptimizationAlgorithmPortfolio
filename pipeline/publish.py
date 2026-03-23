@@ -237,7 +237,6 @@ def publish():
             math_deep_dive=artifacts.get("math_deep_dive"),
             implementation=artifacts.get("implementation"),
             infographic_spec=artifacts.get("infographic_spec"),
-            quiz=artifacts.get("quiz"),
             has_infographic=has_infographic,
             provenance=_build_provenance(manifest),
         )

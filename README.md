@@ -13,7 +13,7 @@ This project combines:
 
 ### Content Generation
 - Generates structured educational content for 8 optimization algorithms
-- Creates multiple artifact types: overviews, math deep dives, implementations, quizzes, and infographics
+- Creates multiple artifact types: overviews, math deep dives, implementations, and infographics
 - Schema-validated JSON output with retry logic
 
 ### Interactive Learning Tools
@@ -25,7 +25,6 @@ This project combines:
 
 ### Educational Website
 - Mobile-responsive design with modern UI
-- Interactive quizzes and flashcards
 - Expandable mathematical derivations
 - Code examples with framework tabs
 - Use-case comparison matrix

@@ -176,56 +176,6 @@ IMPLEMENTATION_SCHEMA = {
     "additionalProperties": False,
 }
 
-QUIZ_SCHEMA = {
-    "type": "object",
-    "required": [
-        "technique_slug",
-        "artifact_type",
-        "multiple_choice",
-        "flashcards",
-    ],
-    "properties": {
-        "technique_slug": {"type": "string", "minLength": 1},
-        "artifact_type": {"type": "string", "const": "quiz"},
-        "multiple_choice": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "required": ["question", "choices", "correct_index", "explanation"],
-                "properties": {
-                    "question": {"type": "string", "minLength": 1},
-                    "choices": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "minItems": 4,
-                        "maxItems": 4,
-                    },
-                    "correct_index": {"type": "integer", "minimum": 0, "maximum": 3},
-                    "explanation": {"type": "string", "minLength": 1},
-                },
-                "additionalProperties": False,
-            },
-            "minItems": 3,
-            "maxItems": 5,
-        },
-        "flashcards": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "required": ["front", "back"],
-                "properties": {
-                    "front": {"type": "string", "minLength": 1},
-                    "back": {"type": "string", "minLength": 1},
-                },
-                "additionalProperties": False,
-            },
-            "minItems": 3,
-            "maxItems": 8,
-        },
-    },
-    "additionalProperties": False,
-}
-
 INFOGRAPHIC_SPEC_SCHEMA = {
     "type": "object",
     "required": [
@@ -286,5 +236,4 @@ SCHEMAS = {
     "implementation": IMPLEMENTATION_SCHEMA,
     "infographic_spec": INFOGRAPHIC_SPEC_SCHEMA,
     "homepage_summary": HOMEPAGE_SUMMARY_SCHEMA,
-    "quiz": QUIZ_SCHEMA,
 }

@@ -64,28 +64,6 @@
         .code-tabs__panel { display: none; }
         .code-tabs__panel.active { display: block; }
 
-        /* Quiz styles */
-        .quiz-section { margin: 2rem 0; }
-        .quiz-card { background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 1.5rem; margin: 1rem 0; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-        .quiz-card__question { font-weight: 600; margin-bottom: 1rem; color: #1a1a2e; }
-        .quiz-card__choices { list-style: none; }
-        .quiz-card__choice { padding: 0.6rem 1rem; margin: 0.4rem 0; border: 2px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
-        .quiz-card__choice:hover { border-color: #283593; background: #f5f7ff; }
-        .quiz-card__choice.correct { border-color: #2e7d32; background: #e8f5e9; }
-        .quiz-card__choice.incorrect { border-color: #d32f2f; background: #ffebee; }
-        .quiz-card__choice.disabled { pointer-events: none; opacity: 0.7; }
-        .quiz-card__explanation { margin-top: 1rem; padding: 0.75rem; background: #e8eaf6; border-radius: 6px; display: none; }
-        .quiz-card__explanation.visible { display: block; }
-
-        /* Flashcard styles */
-        .flashcard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin: 1rem 0; }
-        .flashcard { perspective: 600px; height: 200px; cursor: pointer; }
-        .flashcard__inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
-        .flashcard.flipped .flashcard__inner { transform: rotateY(180deg); }
-        .flashcard__front, .flashcard__back { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 10px; padding: 1.25rem; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.95rem; }
-        .flashcard__front { background: linear-gradient(135deg, #1a237e, #283593); color: white; font-weight: 600; }
-        .flashcard__back { background: #e8eaf6; color: #1a1a2e; transform: rotateY(180deg); }
-
         /* Math tutor tooltip */
         .math-tutor-tooltip { position: absolute; background: #1a237e; color: white; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer; z-index: 100; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         .math-tutor-tooltip:hover { background: #283593; }
@@ -223,37 +201,6 @@
         </div>
         {% endif %}
 
-        {% if quiz %}
-        <div class="section quiz-section">
-            <h2>Quiz & Flashcards</h2>
-
-            <h3>Multiple Choice</h3>
-            {% for q in quiz.multiple_choice %}
-            <div class="quiz-card" data-correct="{{ q.correct_index }}">
-                <div class="quiz-card__question">{{ loop.index }}. {{ q.question }}</div>
-                <ul class="quiz-card__choices">
-                    {% for choice in q.choices %}
-                    <li class="quiz-card__choice" data-index="{{ loop.index0 }}" onclick="checkAnswer(this)">{{ choice }}</li>
-                    {% endfor %}
-                </ul>
-                <div class="quiz-card__explanation">{{ q.explanation }}</div>
-            </div>
-            {% endfor %}
-
-            <h3>Flashcards</h3>
-            <p style="color:#666;font-size:0.9rem;">Click a card to flip it.</p>
-            <div class="flashcard-grid">
-                {% for fc in quiz.flashcards %}
-                <div class="flashcard" onclick="this.classList.toggle('flipped')">
-                    <div class="flashcard__inner">
-                        <div class="flashcard__front">{{ fc.front }}</div>
-                        <div class="flashcard__back">{{ fc.back }}</div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 
     <!-- Math Tutor Sidebar -->
@@ -291,20 +238,6 @@
         container.querySelectorAll('.code-tabs__panel').forEach(function(p) { p.classList.remove('active'); });
         btn.classList.add('active');
         document.getElementById(panelId).classList.add('active');
-    }
-
-    /* ── Quiz Logic ────────────────────────────────────────── */
-    function checkAnswer(choiceEl) {
-        var card = choiceEl.closest('.quiz-card');
-        var correctIdx = parseInt(card.dataset.correct, 10);
-        var clickedIdx = parseInt(choiceEl.dataset.index, 10);
-        var choices = card.querySelectorAll('.quiz-card__choice');
-        choices.forEach(function(c) { c.classList.add('disabled'); });
-        choices[correctIdx].classList.add('correct');
-        if (clickedIdx !== correctIdx) {
-            choiceEl.classList.add('incorrect');
-        }
-        card.querySelector('.quiz-card__explanation').classList.add('visible');
     }
 
     /* ── Math Tutor (text selection) ───────────────────────── */

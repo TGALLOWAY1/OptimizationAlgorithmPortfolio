@@ -33,7 +33,6 @@ PROMPT_MAP = {
     "math_deep_dive": "math_prompt.md",
     "implementation": "implementation_prompt.md",
     "infographic_spec": "infographic_prompt.md",
-    "quiz": "quiz_prompt.md",
     "homepage_summary": "homepage_summary_prompt.md",
     "infographic_image": "infographic_image_prompt.md",
     "preview_image": "preview_image_prompt.md",
