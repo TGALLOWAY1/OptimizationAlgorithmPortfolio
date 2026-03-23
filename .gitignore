@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 site/
+generated/
+content/techniques/
 *.egg-info/
 dist/
 build/

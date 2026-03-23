@@ -10,16 +10,20 @@ from pathlib import Path
 import markdown
 from jinja2 import Environment, FileSystemLoader
 
+from pipeline.paths import (
+    GENERATED_TECHNIQUES_DIR,
+    SITE_DIR as DEFAULT_SITE_DIR,
+    TEMPLATES_DIR,
+)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-CONTENT_DIR = Path(__file__).resolve().parents[1] / "content"
-SITE_DIR = Path(__file__).resolve().parents[1] / "site"
-TEMPLATES_DIR = Path(__file__).parent / "templates"
-TECHNIQUES_DIR = CONTENT_DIR / "techniques"
+SITE_DIR = DEFAULT_SITE_DIR
+TECHNIQUES_DIR = GENERATED_TECHNIQUES_DIR
 
 
 def _slugify(name: str) -> str:

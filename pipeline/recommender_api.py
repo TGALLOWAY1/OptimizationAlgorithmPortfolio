@@ -3,12 +3,12 @@
 import json
 import logging
 import os
-from pathlib import Path
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from pipeline.llm_client import get_provider, generate_with_retry
+from pipeline.paths import PROMPTS_DIR, USE_CASE_MATRIX_PATH
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
-USE_CASE_MATRIX_PATH = Path("content/use_case_matrix.json")
-RECOMMENDER_PROMPT_PATH = Path(__file__).parent / "prompts" / "recommender_prompt.md"
+RECOMMENDER_PROMPT_PATH = PROMPTS_DIR / "recommender_prompt.md"
 
 RECOMMENDATION_SCHEMA = {
     "type": "object",

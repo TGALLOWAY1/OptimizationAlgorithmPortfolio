@@ -13,13 +13,13 @@ from pipeline.llm_client import (
     generate_with_retry,
     get_provider,
 )
+from pipeline.paths import GENERATED_TECHNIQUES_DIR, PROMPTS_DIR, technique_dir
 from pipeline.schemas import SCHEMAS
 from pipeline.validator import validate_artifact, validate_infographic_image
 
 logger = logging.getLogger(__name__)
 
-CONTENT_DIR = Path("content/techniques")
-PROMPTS_DIR = Path(__file__).parent / "prompts"
+CONTENT_DIR = GENERATED_TECHNIQUES_DIR
 
 
 def slugify(name: str) -> str:
@@ -40,7 +40,7 @@ def generate_plan(
 ) -> dict:
     """Generate (or load) the plan for a technique."""
     slug = slugify(technique_name)
-    out_dir = CONTENT_DIR / slug
+    out_dir = technique_dir(slug, CONTENT_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     plan_path = out_dir / "plan.json"
 
@@ -70,7 +70,7 @@ def generate_artifact(
     provider_override=None,
 ) -> dict:
     """Generate a single artifact for a technique."""
-    out_dir = CONTENT_DIR / technique_slug
+    out_dir = technique_dir(technique_slug, CONTENT_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = out_dir / f"{artifact_type}.json"
 
@@ -130,7 +130,7 @@ def generate_homepage_summary(
     provider_override=None,
 ) -> dict:
     """Generate short bullet-point summary for homepage cards."""
-    out_dir = CONTENT_DIR / technique_slug
+    out_dir = technique_dir(technique_slug, CONTENT_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = out_dir / "homepage_summary.json"
 
@@ -167,7 +167,7 @@ def generate_infographic_image(
     force: bool = False,
 ) -> str | None:
     """Generate the infographic image using Nano Banana Pro."""
-    out_dir = CONTENT_DIR / technique_slug
+    out_dir = technique_dir(technique_slug, CONTENT_DIR)
     image_path = out_dir / "infographic.png"
 
     if image_path.exists() and not force:
@@ -218,7 +218,7 @@ def generate_preview_image(
     force: bool = False,
 ) -> str | None:
     """Generate a homepage preview thumbnail using Nano Banana. Consistent theme across all techniques."""
-    out_dir = CONTENT_DIR / technique_slug
+    out_dir = technique_dir(technique_slug, CONTENT_DIR)
     image_path = out_dir / "preview.png"
 
     if image_path.exists() and not force:

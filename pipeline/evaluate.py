@@ -9,17 +9,23 @@ from typing import Any
 
 from pipeline.code_runner import validate_code_artifact
 from pipeline.judge import evaluate_artifact
+from pipeline.paths import (
+    EVALUATION_LATEST_FULL_PATH,
+    GENERATED_LOGS_DIR,
+    GENERATED_TECHNIQUES_DIR,
+    technique_dir,
+)
 from pipeline.retry_loop import retry_loop
 from pipeline.schema_validate import validate_schema
 from pipeline.validator import validate_artifact as run_static_checks
 
 logger = logging.getLogger(__name__)
 
-CANDIDATES_DIR = Path("build/generated_candidates")
-VALIDATED_DIR = Path("build/validated_artifacts")
-CONTENT_DIR = Path("content/techniques")
-METRICS_PATH = Path("content/evaluation_metrics.json")
-LOG_DIR = Path("build/logs/evaluation")
+CANDIDATES_DIR = GENERATED_TECHNIQUES_DIR
+VALIDATED_DIR = GENERATED_TECHNIQUES_DIR
+CONTENT_DIR = GENERATED_TECHNIQUES_DIR
+METRICS_PATH = EVALUATION_LATEST_FULL_PATH
+LOG_DIR = GENERATED_LOGS_DIR / "evaluation"
 
 # Artifact types that contain executable Python code
 CODE_ARTIFACT_TYPES = {"implementation"}
@@ -239,7 +245,7 @@ def promote_artifact(
     Returns:
         Path to the promoted artifact file.
     """
-    out_dir = CONTENT_DIR / technique_slug
+    out_dir = technique_dir(technique_slug, CONTENT_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = out_dir / f"{artifact_type}.json"
     artifact_path.write_text(json.dumps(artifact_data, indent=2))

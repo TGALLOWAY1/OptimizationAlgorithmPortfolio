@@ -11,15 +11,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pipeline.llm_client import get_provider, generate_with_retry
+from pipeline.paths import PROMPTS_DIR, USE_CASE_MATRIX_PATH
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-CONTENT_DIR = Path(__file__).resolve().parents[1] / "content"
-PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 USE_CASE_MATRIX_SCHEMA = {
     "type": "object",
@@ -55,9 +53,9 @@ USE_CASE_MATRIX_SCHEMA = {
 
 
 def main(force: bool = False) -> dict:
-    """Generate use case matrix and save to content/use_case_matrix.json."""
-    output_path = CONTENT_DIR / "use_case_matrix.json"
-    CONTENT_DIR.mkdir(parents=True, exist_ok=True)
+    """Generate use case matrix and save to the generated artifact root."""
+    output_path = USE_CASE_MATRIX_PATH
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if output_path.exists() and not force:
         logger.info("Use case matrix already exists, skipping (use --force to regenerate)")
