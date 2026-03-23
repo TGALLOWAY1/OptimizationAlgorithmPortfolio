@@ -21,11 +21,19 @@
         td.problem-space { text-align: left; font-size: 0.9rem; }
         .problem-desc { text-align: left; font-size: 0.8rem; color: #6b7280; overflow-wrap: anywhere; }
         tr:hover td { background: #f9fafb; }
-        .cell-ideal, .cell-suitable { color: #059669; font-size: 1.25rem; }
-        .cell-unsuitable { color: #dc2626; font-size: 1.25rem; }
+        .cell-ideal, .cell-suitable, .cell-unsuitable { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
+        .cell-ideal { color: #065f46; background: #d1fae5; }
+        .cell-suitable { color: #92400e; background: #fef3c7; }
+        .cell-unsuitable { color: #991b1b; background: #fee2e2; }
         th.alg { font-size: 0.85rem; }
         th.alg a { color: white; text-decoration: none; }
         th.alg a:hover { text-decoration: underline; }
+        .legend { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; font-size: 0.9rem; color: #4b5563; }
+        .legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+        .legend-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 78px; padding: 0.25rem 0.55rem; border-radius: 999px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+        .legend-badge--ideal { background: #d1fae5; color: #065f46; }
+        .legend-badge--suitable { background: #fef3c7; color: #92400e; }
+        .legend-badge--unsuitable { background: #fee2e2; color: #991b1b; }
         footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; }
         @media (max-width: 640px) {
             nav { padding: 0.75rem 1rem; }
@@ -61,12 +69,9 @@
                             <div class="problem-desc">{{ ps.description }}</div>
                         </td>
                         {% for alg in algorithms %}
-                        <td class="cell-{{ matrix[alg][ps.id] }}">
-                            {% if matrix[alg][ps.id] in ['ideal', 'suitable'] %}
-                            ✅
-                            {% else %}
-                            ❌
-                            {% endif %}
+                        {% set state = matrix[alg][ps.id] %}
+                        <td class="cell-{{ state }}">
+                            {{ state.replace('_', ' ') }}
                         </td>
                         {% endfor %}
                     </tr>
@@ -74,9 +79,11 @@
                 </tbody>
             </table>
         </div>
-        <p style="margin-top: 1.5rem; font-size: 0.9rem; color: #6b7280;">
-            ✅ = ideal or suitable &nbsp;|&nbsp; ❌ = unsuitable
-        </p>
+        <div class="legend">
+            <span><span class="legend-badge legend-badge--ideal">Ideal</span> best-fit default choice</span>
+            <span><span class="legend-badge legend-badge--suitable">Suitable</span> reasonable option with tradeoffs</span>
+            <span><span class="legend-badge legend-badge--unsuitable">Unsuitable</span> poor fit for the problem space</span>
+        </div>
     </div>
     <footer>Optimization Algorithm Portfolio</footer>
 </body>

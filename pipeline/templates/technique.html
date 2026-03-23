@@ -21,6 +21,8 @@
         nav a { color: white; text-decoration: none; }
         h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); margin: 1.5rem 0 1rem; color: #1a237e; overflow-wrap: anywhere; }
         h2 { font-size: clamp(1.35rem, 4vw, 1.5rem); margin: 2rem 0 0.75rem; color: #283593; border-bottom: 2px solid #e8eaf6; padding-bottom: 0.25rem; }
+        .provenance { margin: 0 0 1.5rem; padding: 0.9rem 1rem; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; color: #3730a3; }
+        .provenance p { margin: 0.2rem 0; font-size: 0.92rem; }
         .section h2 { margin-top: 2rem; }
         .section h2:first-child { margin-top: 0; }
         .section .md-content h2 { font-size: 1.25rem; margin-top: 1.5rem; }
@@ -124,6 +126,14 @@
     <nav><a href="index.html">Optimization Algorithm Portfolio</a> <a href="use-case-matrix.html">Use Case Matrix</a></nav>
     <div class="container">
         <h1>{{ technique_name }}</h1>
+        {% if provenance %}
+        <div class="provenance">
+            <p><strong>Generated:</strong> {{ provenance.generated_at }}</p>
+            <p><strong>Artifact version:</strong> {{ provenance.artifact_version }}</p>
+            <p><strong>Text model:</strong> {{ provenance.text_model }}</p>
+            <p><strong>Image model:</strong> {{ provenance.image_model }}</p>
+        </div>
+        {% endif %}
 
         {% if overview %}
         <div class="section">
