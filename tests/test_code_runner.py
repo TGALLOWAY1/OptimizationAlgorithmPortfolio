@@ -1,6 +1,11 @@
 """Tests for the code execution validation module."""
 
-from pipeline.code_runner import check_dependencies, run_code, validate_code_artifact
+from pipeline.code_runner import (
+    check_dependencies,
+    extract_imports,
+    run_code,
+    validate_code_artifact,
+)
 
 
 class TestCheckDependencies:
@@ -22,6 +27,14 @@ class TestCheckDependencies:
         result = check_dependencies(["numpy", "dangerous_lib"])
         assert result["passed"] is False
         assert "dangerous_lib" in result["blocked"]
+
+
+class TestExtractImports:
+    def test_extracts_top_level_imports(self):
+        imports = extract_imports(
+            "import numpy as np\nfrom scipy.optimize import minimize\nfrom sklearn.model_selection import train_test_split"
+        )
+        assert imports == {"numpy", "scipy", "sklearn"}
 
 
 class TestRunCode:
@@ -54,7 +67,7 @@ class TestRunCode:
 
 class TestValidateCodeArtifact:
     def test_no_examples_passes(self):
-        artifact = {"python_examples": [], "libraries": []}
+        artifact = {"python_examples": [], "libraries": [], "runtime_dependencies": []}
         result = validate_code_artifact(artifact)
         assert result["passed"] is True
 
@@ -62,6 +75,7 @@ class TestValidateCodeArtifact:
         artifact = {
             "python_examples": ["print('test')", "x = 1 + 2\nprint(x)"],
             "libraries": ["math"],
+            "runtime_dependencies": [],
         }
         result = validate_code_artifact(artifact)
         assert result["passed"] is True
@@ -71,6 +85,7 @@ class TestValidateCodeArtifact:
         artifact = {
             "python_examples": ["raise RuntimeError('fail')"],
             "libraries": [],
+            "runtime_dependencies": [],
         }
         result = validate_code_artifact(artifact)
         assert result["passed"] is False
@@ -79,7 +94,18 @@ class TestValidateCodeArtifact:
         artifact = {
             "python_examples": ["print('ok')"],
             "libraries": ["requests"],
+            "runtime_dependencies": ["requests"],
         }
         result = validate_code_artifact(artifact)
         assert result["passed"] is False
         assert "dependency_check" in result
+
+    def test_undeclared_import_fails(self):
+        artifact = {
+            "python_examples": ["import numpy as np\nprint(np.zeros(1))"],
+            "libraries": ["NumPy - Numerical arrays"],
+            "runtime_dependencies": [],
+        }
+        result = validate_code_artifact(artifact)
+        assert result["passed"] is False
+        assert "numpy" in result["undeclared_imports"]

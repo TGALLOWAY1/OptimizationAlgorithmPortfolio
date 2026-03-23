@@ -1,25 +1,37 @@
 """Main evaluation orchestrator — validates, judges, and promotes artifacts."""
 
+from __future__ import annotations
+
 import json
 import logging
 import re
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from pipeline.code_runner import validate_code_artifact
 from pipeline.judge import evaluate_artifact
+from pipeline.paths import (
+    EVALUATION_LATEST_FULL_PATH,
+    EVALUATION_LATEST_PARTIAL_PATH,
+    GENERATED_EVALUATIONS_DIR,
+    GENERATED_LOGS_DIR,
+    GENERATED_TECHNIQUES_DIR,
+    technique_dir,
+)
 from pipeline.retry_loop import retry_loop
 from pipeline.schema_validate import validate_schema
-from pipeline.validator import validate_artifact as run_static_checks
+from pipeline.validator import iter_string_fields, validate_artifact as run_static_checks
 
 logger = logging.getLogger(__name__)
 
-CANDIDATES_DIR = Path("build/generated_candidates")
-VALIDATED_DIR = Path("build/validated_artifacts")
-CONTENT_DIR = Path("content/techniques")
-METRICS_PATH = Path("content/evaluation_metrics.json")
-LOG_DIR = Path("build/logs/evaluation")
+CANDIDATES_DIR = GENERATED_TECHNIQUES_DIR
+VALIDATED_DIR = GENERATED_TECHNIQUES_DIR
+CONTENT_DIR = GENERATED_TECHNIQUES_DIR
+METRICS_PATH = EVALUATION_LATEST_FULL_PATH
+LOG_DIR = GENERATED_LOGS_DIR / "evaluation"
+RUNS_DIR = GENERATED_EVALUATIONS_DIR
 
 # Artifact types that contain executable Python code
 CODE_ARTIFACT_TYPES = {"implementation"}
@@ -54,15 +66,14 @@ def run_deterministic_checks(artifact_type: str, data: dict[str, Any]) -> dict[s
     """
     errors: list[str] = []
 
-    # Check for placeholders in all string fields
-    for key, value in data.items():
-        if isinstance(value, str):
-            for pattern in PLACEHOLDER_PATTERNS:
-                if pattern.search(value):
-                    errors.append(
-                        f"Placeholder detected in field '{key}': "
-                        f"matched pattern '{pattern.pattern}'"
-                    )
+    # Check for placeholders in all nested string fields
+    for field_path, value in iter_string_fields(data):
+        for pattern in PLACEHOLDER_PATTERNS:
+            if pattern.search(value):
+                errors.append(
+                    f"Placeholder detected in field '{field_path}': "
+                    f"matched pattern '{pattern.pattern}'"
+                )
 
     # LaTeX delimiter balance check for math-heavy artifacts
     if artifact_type in ("math_deep_dive", "overview", "implementation"):
@@ -239,7 +250,7 @@ def promote_artifact(
     Returns:
         Path to the promoted artifact file.
     """
-    out_dir = CONTENT_DIR / technique_slug
+    out_dir = technique_dir(technique_slug, CONTENT_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = out_dir / f"{artifact_type}.json"
     artifact_path.write_text(json.dumps(artifact_data, indent=2))
@@ -247,12 +258,33 @@ def promote_artifact(
     return artifact_path
 
 
-def save_metrics(metrics: dict[str, Any]) -> Path:
-    """Save evaluation metrics to content/evaluation_metrics.json."""
-    METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    METRICS_PATH.write_text(json.dumps(metrics, indent=2))
-    logger.info("Saved evaluation metrics to %s", METRICS_PATH)
-    return METRICS_PATH
+def _metrics_filename(evaluated_at: str, scope_type: str) -> str:
+    dt = datetime.fromisoformat(evaluated_at)
+    return f"{dt.strftime('%Y%m%dT%H%M%SZ')}-{scope_type}.json"
+
+
+def save_metrics(metrics: dict[str, Any]) -> dict[str, Path]:
+    """Save evaluation metrics to a run-scoped file and the latest scope alias."""
+    scope_type = metrics.get("scope", {}).get("type", "partial")
+    evaluated_at = metrics.get("evaluated_at") or datetime.now(timezone.utc).isoformat()
+    metrics["evaluated_at"] = evaluated_at
+
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    latest_path = (
+        EVALUATION_LATEST_FULL_PATH
+        if scope_type == "full"
+        else EVALUATION_LATEST_PARTIAL_PATH
+    )
+    run_path = RUNS_DIR / _metrics_filename(evaluated_at, scope_type)
+
+    payload = json.dumps(metrics, indent=2)
+    run_path.write_text(payload)
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.write_text(payload)
+
+    logger.info("Saved evaluation metrics run to %s", run_path)
+    logger.info("Updated latest %s evaluation metrics at %s", scope_type, latest_path)
+    return {"run_path": run_path, "latest_path": latest_path}
 
 
 def save_evaluation_log(

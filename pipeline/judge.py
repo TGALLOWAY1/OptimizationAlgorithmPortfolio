@@ -2,15 +2,12 @@
 
 import json
 import logging
-from pathlib import Path
 from typing import Any
 
 from pipeline.llm_client import generate_with_retry, get_provider
+from pipeline.paths import REFERENCE_DIR, RUBRICS_PATH
 
 logger = logging.getLogger(__name__)
-
-RUBRICS_PATH = Path("content/rubrics.json")
-REFERENCE_DIR = Path("content/reference")
 
 # JSON Schema for judge output
 JUDGE_OUTPUT_SCHEMA = {

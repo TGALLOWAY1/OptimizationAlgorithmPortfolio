@@ -13,9 +13,9 @@ class TestProviderRouting:
         config = load_config()
         assert config["artifact_provider_map"]["plan"] == "gemini"
 
-    def test_overview_uses_openai(self):
+    def test_overview_uses_gemini(self):
         config = load_config()
-        assert config["artifact_provider_map"]["overview"] == "openai"
+        assert config["artifact_provider_map"]["overview"] == "gemini"
 
     def test_infographic_image_uses_nano_banana(self):
         config = load_config()

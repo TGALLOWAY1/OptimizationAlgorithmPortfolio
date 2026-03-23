@@ -1,5 +1,6 @@
 """Python code execution validation for the evaluation pipeline."""
 
+import ast
 import logging
 import subprocess
 import sys
@@ -35,6 +36,30 @@ ALLOWED_LIBRARIES = {
 DEFAULT_TIMEOUT_SECONDS = 30
 
 
+def _normalize_dependency_name(dependency: str) -> str:
+    dep = dependency.strip()
+    if dep.lower() == "scikit-learn":
+        return "sklearn"
+    return dep.split(".", 1)[0]
+
+
+def extract_imports(code: str) -> set[str]:
+    """Return the set of top-level imported modules referenced in a code snippet."""
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return set()
+
+    imports: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imports.add(alias.name.split(".", 1)[0])
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.add(node.module.split(".", 1)[0])
+    return imports
+
+
 def check_dependencies(dependencies: list[str]) -> dict[str, Any]:
     """Check if declared dependencies are in the allowlist and available.
 
@@ -44,18 +69,15 @@ def check_dependencies(dependencies: list[str]) -> dict[str, Any]:
     Returns:
         Dict with passed (bool) and missing/blocked lists.
     """
-    blocked = [dep for dep in dependencies if dep.lower() not in ALLOWED_LIBRARIES]
+    normalized = [_normalize_dependency_name(dep) for dep in dependencies]
+    blocked = [dep for dep in normalized if dep.lower() not in ALLOWED_LIBRARIES]
     missing: list[str] = []
 
-    for dep in dependencies:
+    for dep in normalized:
         if dep.lower() in blocked:
             continue
-        # Map common names to import names
-        import_name = dep
-        if dep.lower() == "scikit-learn":
-            import_name = "sklearn"
         try:
-            __import__(import_name)
+            __import__(dep)
         except ImportError:
             missing.append(dep)
 
@@ -131,9 +153,8 @@ def validate_code_artifact(artifact: dict[str, Any]) -> dict[str, Any]:
     if not python_examples:
         return {"passed": True, "results": [], "note": "No Python examples to run"}
 
-    # Check declared dependencies
-    libraries = artifact.get("libraries", [])
-    dep_check = check_dependencies(libraries)
+    declared_dependencies = artifact.get("runtime_dependencies", [])
+    dep_check = check_dependencies(declared_dependencies)
     if not dep_check["passed"]:
         logger.warning(
             "Dependency check failed: blocked=%s, missing=%s",
@@ -144,6 +165,31 @@ def validate_code_artifact(artifact: dict[str, Any]) -> dict[str, Any]:
             "passed": False,
             "results": [],
             "dependency_check": dep_check,
+        }
+
+    imported_modules = sorted(
+        {
+            module
+            for code in python_examples
+            for module in extract_imports(code)
+        }
+    )
+    allowed_declared = {
+        _normalize_dependency_name(dep) for dep in declared_dependencies
+    }
+    undeclared_imports = [
+        module for module in imported_modules if module not in allowed_declared
+    ]
+    blocked_imports = [
+        module for module in imported_modules if module.lower() not in ALLOWED_LIBRARIES
+    ]
+    if undeclared_imports or blocked_imports:
+        return {
+            "passed": False,
+            "results": [],
+            "dependency_check": dep_check,
+            "undeclared_imports": undeclared_imports,
+            "blocked_imports": blocked_imports,
         }
 
     results: list[dict[str, Any]] = []

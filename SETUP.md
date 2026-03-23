@@ -2,7 +2,7 @@
 
 This document lists the steps **you** need to take before running the pipeline. These require credentials, accounts, or actions that cannot be automated.
 
-> **Note for macOS:** Use `python3` for all Python commands (e.g. `python3 -m pipeline.generate`). The system `python` command may not exist or point to Python 2.
+> **Note for macOS:** Use `python3.11` for all Python commands. The system `python3` may resolve to an older interpreter, and the pipeline now fails fast below Python 3.11.
 
 ---
 
@@ -42,10 +42,10 @@ The pipeline uses `python-dotenv` to load `.env` automatically — no need to ex
 
 ## 3. Install Python Dependencies
 
-Requires **Python 3.11+** (on macOS, use `python3` — the `python` command may not exist).
+Requires **Python 3.11+**.
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate    # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
@@ -131,24 +131,29 @@ Once all the above steps are complete, **activate the virtual environment first*
 source .venv/bin/activate
 ```
 
-Then run (use `python3` on macOS):
+Then run:
 
 ```bash
-# Generate all 8 techniques (all artifacts + infographic images)
-python3 -m pipeline.generate
+# Generate all 8 techniques (all artifacts + infographic/preview images)
+python3.11 -m pipeline.generate
 
 # Generate a single technique
-python3 -m pipeline.generate --technique "Bayesian Optimization"
+python3.11 -m pipeline.generate --technique "Bayesian Optimization"
 
 # Force regeneration of existing artifacts
-python3 -m pipeline.generate --force
+python3.11 -m pipeline.generate --force
+
+# Delete stale generated outputs before regenerating
+python3.11 -m pipeline.generate --clean
 
 # Skip image generation (text artifacts only)
-python3 -m pipeline.generate --skip-images
+python3.11 -m pipeline.generate --skip-images
 
 # Force all artifacts through OpenAI
-python3 -m pipeline.generate --provider openai
+python3.11 -m pipeline.generate --provider openai
 ```
+
+Generated technique artifacts, evaluation outputs, and the use-case matrix are written under `generated/`. Tracked `content/` files are now only source data such as reference facts and rubrics.
 
 ---
 
@@ -157,15 +162,15 @@ python3 -m pipeline.generate --provider openai
 After content generation completes:
 
 ```bash
-python3 -m pipeline.publish
+python3.11 -m pipeline.publish
 ```
 
-This outputs static HTML to the `site/` directory. Open `site/index.html` in a browser to view.
+This performs a clean rebuild of the static HTML site in the `site/` directory. Open `site/index.html` in a browser to view.
 
 To serve locally:
 
 ```bash
-python3 -m http.server 8000 --directory site
+python3.11 -m http.server 8000 --directory site
 # Then open http://localhost:8000
 ```
 
@@ -174,7 +179,7 @@ python3 -m http.server 8000 --directory site
 ## 7. Run Tests
 
 ```bash
-python3 -m pytest tests/ -v
+python3.11 -m pytest tests/ -v
 ```
 
 All tests use mocks and do not require API keys.
@@ -183,14 +188,13 @@ All tests use mocks and do not require API keys.
 
 ## Cost Estimates
 
-Approximate costs per full pipeline run (8 techniques, all artifacts):
+Approximate costs per full pipeline run (8 techniques, all generated content and images):
 
 | Provider | Artifacts | Est. Cost |
 |----------|-----------|-----------|
-| OpenAI GPT-4o | 16 (overview + math_deep_dive) | ~$2-5 |
-| Gemini 3.1 Pro | 24 (plan + implementation + infographic_spec) | ~$1-3 |
-| Nano Banana Pro | 8 images | ~$1-2 |
-| **Total** | **48 artifacts** | **~$4-10** |
+| Gemini 3.1 Pro | Plans, technique content, homepage summaries, use-case matrix | ~$3-8 |
+| Nano Banana Pro | Infographic + preview images | ~$1-3 |
+| **Total** | **Full content refresh** | **~$4-11** |
 
 Costs depend on response length and may vary. Use `--skip-images` to reduce costs during development.
 
@@ -201,6 +205,7 @@ Costs depend on response length and may vary. Use `--skip-images` to reduce cost
 | Issue | Fix |
 |-------|-----|
 | `ModuleNotFoundError: No module named 'jsonschema'` (or other deps) | Activate the venv first: `source .venv/bin/activate` — you're using system Python, which doesn't have project dependencies |
+| `RuntimeError: Optimization Algorithm Portfolio requires Python 3.11+` | Recreate the venv with `python3.11 -m venv .venv` and rerun the command with `python3.11` |
 | `ModuleNotFoundError: No module named 'google'` | Run `pip install google-genai` (with venv activated) |
 | `ModuleNotFoundError: No module named 'openai'` | Run `pip install openai` |
 | `ValueError: Environment variable OPENAI_API_KEY is not set` | Export the key: `export OPENAI_API_KEY=sk-...` |

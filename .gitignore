@@ -1,7 +1,13 @@
 .env
+.venv/
+.venv311/
 __pycache__/
 *.pyc
 site/
+generated/
+content/techniques/
+content/evaluation_metrics.json
+content/use_case_matrix.json
 *.egg-info/
 dist/
 build/

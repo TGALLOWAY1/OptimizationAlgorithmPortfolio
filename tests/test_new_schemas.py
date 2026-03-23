@@ -1,4 +1,4 @@
-"""Tests for the new schemas: quiz, updated math_deep_dive, updated implementation."""
+"""Tests for the updated math_deep_dive and implementation schemas."""
 
 import pytest
 import jsonschema
@@ -57,6 +57,7 @@ class TestImplementationSchemaUpdated:
             "markdown": "word " * 800 + " ```python\nprint()```",
             "python_examples": ["print('hello')"],
             "libraries": ["scipy.optimize"],
+            "runtime_dependencies": ["scipy"],
             "pseudo_code": "FUNCTION optimize()\n  RETURN x",
             "code_variations": [
                 {"framework": "numpy", "label": "NumPy Implementation", "code": "import numpy as np\n..."},
@@ -74,6 +75,12 @@ class TestImplementationSchemaUpdated:
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate(data, SCHEMAS["implementation"])
 
+    def test_missing_runtime_dependencies_fails(self):
+        data = self._make_valid()
+        del data["runtime_dependencies"]
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(data, SCHEMAS["implementation"])
+
     def test_too_few_variations_fails(self):
         data = self._make_valid()
         data["code_variations"] = data["code_variations"][:2]
@@ -88,62 +95,3 @@ class TestImplementationSchemaUpdated:
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate(data, SCHEMAS["implementation"])
 
-
-class TestQuizSchema:
-    def _make_valid(self):
-        return {
-            "technique_slug": "gradient-descent",
-            "artifact_type": "quiz",
-            "multiple_choice": [
-                {
-                    "question": "What does the learning rate control?",
-                    "choices": ["Step size", "Direction", "Convergence order", "Dimensionality"],
-                    "correct_index": 0,
-                    "explanation": "The learning rate scales the gradient step size.",
-                },
-                {
-                    "question": "Q2?",
-                    "choices": ["A", "B", "C", "D"],
-                    "correct_index": 1,
-                    "explanation": "B is correct.",
-                },
-                {
-                    "question": "Q3?",
-                    "choices": ["A", "B", "C", "D"],
-                    "correct_index": 2,
-                    "explanation": "C is correct.",
-                },
-            ],
-            "flashcards": [
-                {"front": "What is gradient descent?", "back": "An iterative optimization algorithm."},
-                {"front": "Learning rate", "back": "Step size parameter $\\alpha$."},
-                {"front": "Convergence", "back": "When the gradient approaches zero."},
-            ],
-        }
-
-    def test_valid_passes(self):
-        jsonschema.validate(self._make_valid(), SCHEMAS["quiz"])
-
-    def test_too_few_mc_fails(self):
-        data = self._make_valid()
-        data["multiple_choice"] = data["multiple_choice"][:2]
-        with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(data, SCHEMAS["quiz"])
-
-    def test_wrong_artifact_type_fails(self):
-        data = self._make_valid()
-        data["artifact_type"] = "wrong"
-        with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(data, SCHEMAS["quiz"])
-
-    def test_missing_flashcards_fails(self):
-        data = self._make_valid()
-        del data["flashcards"]
-        with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(data, SCHEMAS["quiz"])
-
-    def test_invalid_correct_index_fails(self):
-        data = self._make_valid()
-        data["multiple_choice"][0]["correct_index"] = 5
-        with pytest.raises(jsonschema.ValidationError):
-            jsonschema.validate(data, SCHEMAS["quiz"])

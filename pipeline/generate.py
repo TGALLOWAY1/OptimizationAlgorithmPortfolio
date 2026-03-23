@@ -1,10 +1,10 @@
 """Main pipeline orchestrator — generates all artifacts for all techniques."""
 
 import argparse
-import json
+from datetime import datetime, timezone
 import logging
+import shutil
 import sys
-from pathlib import Path
 
 from pipeline.generator import (
     generate_artifact,
@@ -15,12 +15,29 @@ from pipeline.generator import (
     slugify,
 )
 from pipeline.llm_client import load_config
+from pipeline.runtime import ensure_supported_python
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def _record_status(stats: dict[str, int], status: str) -> None:
+    if status == "generated":
+        stats["generated"] += 1
+    elif status == "skipped":
+        stats["skipped"] += 1
+
+
+def _clean_technique_outputs(slug: str) -> None:
+    from pipeline.generator import CONTENT_DIR, technique_dir
+
+    out_dir = technique_dir(slug, CONTENT_DIR)
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+        logger.info("Removed existing generated artifacts for %s", slug)
 
 
 def main():
@@ -58,6 +75,11 @@ def main():
         action="store_true",
         help="Skip LLM judge evaluation (schema + static checks only)",
     )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Delete generated outputs for the selected techniques before regenerating",
+    )
     args = parser.parse_args()
 
     config = load_config()
@@ -79,14 +101,18 @@ def main():
         slug = slugify(technique_name)
         logger.info("=== Processing: %s (%s) ===", technique_name, slug)
 
+        if args.clean:
+            _clean_technique_outputs(slug)
+
         # Step 1: Generate plan
         try:
-            plan = generate_plan(
+            plan_result = generate_plan(
                 technique_name,
                 force=args.force,
                 provider_override=args.provider,
             )
-            stats["generated"] += 1
+            plan = plan_result.payload
+            _record_status(stats, plan_result.status)
         except Exception as e:
             logger.error("Failed to generate plan for %s: %s", technique_name, e)
             stats["failed"] += 1
@@ -98,19 +124,20 @@ def main():
         technique_artifacts: dict[str, dict] = {}
         for artifact_type in artifact_types:
             try:
-                result = generate_artifact(
+                artifact_result = generate_artifact(
                     slug,
                     artifact_type,
                     plan,
                     force=args.force,
                     provider_override=args.provider,
                 )
+                result = artifact_result.payload
                 if artifact_type == "infographic_spec":
                     infographic_spec = result
                 if artifact_type == "overview":
                     overview = result
                 technique_artifacts[artifact_type] = result
-                stats["generated"] += 1
+                _record_status(stats, artifact_result.status)
             except Exception as e:
                 logger.error(
                     "Failed to generate %s for %s: %s",
@@ -125,14 +152,14 @@ def main():
         # Step 2b: Generate homepage summary (requires overview)
         if overview:
             try:
-                generate_homepage_summary(
+                summary_result = generate_homepage_summary(
                     slug,
                     plan,
                     overview,
                     force=args.force,
                     provider_override=args.provider,
                 )
-                stats["generated"] += 1
+                _record_status(stats, summary_result.status)
             except Exception as e:
                 logger.error(
                     "Failed to generate homepage summary for %s: %s",
@@ -144,10 +171,10 @@ def main():
         # Step 3: Generate infographic image
         if not args.skip_images and infographic_spec:
             try:
-                generate_infographic_image(
+                image_result = generate_infographic_image(
                     slug, technique_name, infographic_spec, force=args.force
                 )
-                stats["generated"] += 1
+                _record_status(stats, image_result.status)
             except Exception as e:
                 logger.error(
                     "Failed to generate infographic image for %s: %s",
@@ -159,8 +186,10 @@ def main():
         # Step 4: Generate homepage preview image (consistent theme for thumbnails)
         if not args.skip_images:
             try:
-                generate_preview_image(slug, technique_name, force=args.force)
-                stats["generated"] += 1
+                preview_result = generate_preview_image(
+                    slug, technique_name, force=args.force
+                )
+                _record_status(stats, preview_result.status)
             except Exception as e:
                 logger.error(
                     "Failed to generate preview image for %s: %s",
@@ -183,15 +212,26 @@ def main():
             techniques,
             artifact_types,
             all_technique_artifacts,
+            expected_techniques=config["techniques"],
             provider_override=args.provider,
             skip_judge=args.skip_judge,
         )
+
+    if not args.technique:
+        from pipeline.generate_use_case_matrix import main as generate_use_case_matrix
+
+        try:
+            generate_use_case_matrix(force=True)
+            logger.info("Refreshed use case matrix")
+        except Exception as e:
+            logger.error("Failed to generate use case matrix: %s", e)
 
 
 def _run_evaluation(
     techniques: list[str],
     artifact_types: list[str],
     all_artifacts: dict[str, dict[str, dict]],
+    expected_techniques: list[str],
     provider_override=None,
     skip_judge: bool = False,
 ) -> None:
@@ -219,6 +259,7 @@ def _run_evaluation(
         )
 
         metrics["techniques"][slug] = {
+            "technique_name": technique_name,
             "artifacts": result["artifacts"],
         }
 
@@ -229,7 +270,22 @@ def _run_evaluation(
             else:
                 eval_stats["failed"] += 1
 
-    save_metrics(metrics)
+    is_full_scope = sorted(techniques) == sorted(expected_techniques)
+    metrics["evaluated_at"] = datetime.now(timezone.utc).isoformat()
+    metrics["scope"] = {
+        "type": "full" if is_full_scope else "partial",
+        "technique_count": len(techniques),
+        "expected_technique_count": len(expected_techniques),
+        "technique_slugs": [slugify(name) for name in techniques],
+        "artifact_types": artifact_types,
+    }
+    metrics["summary"] = {
+        "passed": eval_stats["passed"],
+        "failed": eval_stats["failed"],
+        "total": eval_stats["total"],
+    }
+
+    saved_paths = save_metrics(metrics)
 
     logger.info("=== Evaluation Summary ===")
     logger.info(
@@ -244,7 +300,9 @@ def _run_evaluation(
             "%d artifact(s) failed evaluation — site build may be blocked",
             eval_stats["failed"],
         )
+    logger.info("Evaluation metrics saved to %s", saved_paths["latest_path"])
 
 
 if __name__ == "__main__":
+    ensure_supported_python()
     main()

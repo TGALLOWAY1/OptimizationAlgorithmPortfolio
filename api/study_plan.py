@@ -2,17 +2,17 @@
 
 import json
 import logging
-from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
 from pipeline.llm_client import generate_with_retry, get_provider
+from pipeline.paths import GENERATED_TECHNIQUES_DIR
 
 logger = logging.getLogger(__name__)
 
 study_plan_bp = Blueprint("study_plan", __name__)
 
-CONTENT_DIR = Path("content/techniques")
+CONTENT_DIR = GENERATED_TECHNIQUES_DIR
 
 STUDY_PLAN_SCHEMA = {
     "type": "object",

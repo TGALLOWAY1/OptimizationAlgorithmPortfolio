@@ -1,7 +1,6 @@
 """Unified Flask application registering all API blueprints and serving the static site."""
 
 import os
-from pathlib import Path
 
 from flask import Flask, send_from_directory, abort
 from flask_cors import CORS
@@ -10,8 +9,8 @@ from api.compare import compare_bp
 from api.math_tutor import math_tutor_bp
 from api.study_plan import study_plan_bp
 from api.adapt_code import adapt_code_bp
-
-SITE_DIR = Path(__file__).resolve().parent.parent / "site"
+from pipeline.paths import SITE_DIR
+from pipeline.runtime import ensure_supported_python
 
 
 def create_app() -> Flask:
@@ -61,6 +60,7 @@ def create_app() -> Flask:
 
 
 if __name__ == "__main__":
+    ensure_supported_python()
     port = int(os.environ.get("PORT", 5000))
     app = create_app()
     app.run(host="0.0.0.0", port=port, debug=True)

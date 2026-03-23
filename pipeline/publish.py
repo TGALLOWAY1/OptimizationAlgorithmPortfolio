@@ -10,16 +10,28 @@ from pathlib import Path
 import markdown
 from jinja2 import Environment, FileSystemLoader
 
+from pipeline.paths import (
+    EVALUATION_LATEST_FULL_PATH,
+    EVALUATION_LATEST_PARTIAL_PATH,
+    GENERATED_TECHNIQUES_DIR,
+    SITE_DIR as DEFAULT_SITE_DIR,
+    TEMPLATES_DIR,
+    USE_CASE_MATRIX_PATH,
+)
+from pipeline.runtime import ensure_supported_python
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-CONTENT_DIR = Path(__file__).resolve().parents[1] / "content"
-SITE_DIR = Path(__file__).resolve().parents[1] / "site"
-TEMPLATES_DIR = Path(__file__).parent / "templates"
-TECHNIQUES_DIR = CONTENT_DIR / "techniques"
+SITE_DIR = DEFAULT_SITE_DIR
+TECHNIQUES_DIR = GENERATED_TECHNIQUES_DIR
+MATH_PLACEHOLDER_PATTERN = re.compile(
+    r"(\$\$.*?\$\$|\\\[.*?\\\]|\\\(.*?\\\)|(?<!\$)\$(?!\$)(?:\\.|[^$\n])+\$)",
+    re.DOTALL,
+)
 
 
 def _slugify(name: str) -> str:
@@ -34,69 +46,42 @@ def load_artifacts(technique_dir: Path) -> dict:
     """Load all JSON artifacts for a technique directory."""
     artifacts = {}
     for json_file in technique_dir.glob("*.json"):
+        if json_file.name == "manifest.json":
+            continue
         key = json_file.stem
         artifacts[key] = json.loads(json_file.read_text())
     return artifacts
 
 
-def _protect_emphasis(text: str, start_counter: int = 0) -> tuple[str, dict[str, str], int]:
-    """Replace *word* and **word** with placeholders so math replacement doesn't corrupt them."""
+def load_manifest(technique_dir: Path) -> dict:
+    """Load generation metadata for a technique directory."""
+    manifest_path = technique_dir / "manifest.json"
+    if not manifest_path.exists():
+        return {}
+    try:
+        return json.loads(manifest_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        logger.warning("Could not read manifest at %s", manifest_path)
+        return {}
+
+
+def _extract_math_segments(text: str) -> tuple[str, dict[str, str]]:
+    """Protect math spans so markdown does not alter LaTeX content."""
     placeholders: dict[str, str] = {}
-    counter = start_counter
 
     def repl(m: re.Match) -> str:
-        nonlocal counter
-        key = f"{{{{EMPH_{counter}}}}}"
-        counter += 1
+        key = f"@@MATH_{len(placeholders)}@@"
         placeholders[key] = m.group(0)
         return key
 
-    # Only protect *word* (single asterisk) - **word** stays for markdown bold
-    text = re.sub(r"\*([^*]+)\*", repl, text)
-    return text, placeholders, counter
+    return MATH_PLACEHOLDER_PATTERN.sub(repl, text), placeholders
 
 
-def _restore_emphasis(text: str, placeholders: dict[str, str]) -> str:
-    """Restore protected *word* and **word** from placeholders."""
+def _restore_placeholders(text: str, placeholders: dict[str, str]) -> str:
+    """Restore placeholder tokens back to their original content."""
     for key, original in placeholders.items():
         text = text.replace(key, original)
     return text
-
-
-def _escape_markdown_in_math(text: str) -> str:
-    """Escape * and _ inside $...$ and $$...$$ so markdown doesn't treat them as emphasis."""
-    parts = re.split(r"(\$\$[^$]*\$\$|\$[^$]*\$)", text)
-    for i in range(1, len(parts), 2):
-        parts[i] = parts[i].replace("*", "\\*").replace("_", "\\_")
-    return "".join(parts)
-
-
-def _normalize_math_in_prose(text: str) -> tuple[str, dict[str, str]]:
-    """Wrap common math notation in $...$ when it appears as plain text (not already in math)."""
-    # Split by $$...$$ and $...$ to avoid double-wrapping; only process non-math segments
-    parts = re.split(r"(\$\$[^$]*\$\$|\$[^$]*\$)", text)
-    result = []
-    all_placeholders: dict[str, str] = {}
-    counter = 0
-    for i, part in enumerate(parts):
-        if i % 2 == 1:
-            result.append(part)  # Already inside math
-            continue
-        # Protect *word* and **word** so (\w)* replacement doesn't corrupt them
-        part, emph_ph, counter = _protect_emphasis(part, counter)
-        all_placeholders.update(emph_ph)
-        # GP(m(x), k(x, x')): use placeholder so m(x), k(x) aren't double-wrapped
-        _gp_ph = "___GP_PLACEHOLDER___"
-        part = re.sub(r"GP\(m\(x\), k\(x, x'\)\)", _gp_ph, part)
-        # Subscripts: D_t, X_t, Y_t, x_t, etc. (letter + _ + subscript)
-        part = re.sub(r"\b([A-Za-z])_([a-zA-Z0-9]+)\b", r"$\1_{\2}$", part)
-        # Optimal/star notation: x*, f*, theta* -> $x^*$, etc.
-        part = re.sub(r"(\w)\*", r"$\1^*$", part)
-        # Common function notation in prose: f(x), a(x), m(x), k(x,x')
-        part = re.sub(r"\b(f|a|m|k)\(([^)]+)\)", r"$\1(\2)$", part)
-        part = part.replace(_gp_ph, r"$GP(m(x), k(x, x'))$")
-        result.append(part)
-    return "".join(result), all_placeholders
 
 
 def _ensure_numbered_lists(text: str) -> str:
@@ -108,27 +93,6 @@ def _ensure_bullet_lists(text: str) -> str:
     """Add blank line before first bullet after a colon so markdown parses as list."""
     # "parameters:\n- First" -> "parameters:\n\n- First"
     return re.sub(r":\s*\n(\s*-\s)", r":\n\n\1", text)
-
-
-def _strip_emphasis_markers(s: str) -> str:
-    """Remove leading/trailing * or ** so *word* or **word** becomes word."""
-    s = s.strip()
-    s = re.sub(r"^[\*\s]+|[\*\s]+$", "", s)
-    return s.strip()
-
-
-def _bold_definition_list_items(text: str) -> str:
-    """Bold the leading term in list items like '- Term: description' or '1. Term: description'."""
-    def bullet_repl(m: re.Match) -> str:
-        term = _strip_emphasis_markers(m.group(1))
-        return f"- **{term}**:"
-    def numbered_repl(m: re.Match) -> str:
-        term = _strip_emphasis_markers(m.group(2))
-        return f"{m.group(1)}. **{term}**:"
-    text = re.sub(r"^- ([^:]+):", bullet_repl, text, flags=re.MULTILINE)
-    # Only match when term has no period (avoids "1. First step. 2. Next:")
-    text = re.sub(r"^(\d+)\. ([^:.]*):", numbered_repl, text, flags=re.MULTILINE)
-    return text
 
 
 def _strip_redundant_leading_heading(text: str, _section_title: str = "") -> str:
@@ -154,53 +118,64 @@ def _downgrade_headers(text: str) -> str:
     return "\n".join(result)
 
 
-def md_to_html(text: str, strip_leading_heading: bool = False) -> str:
-    """Convert markdown to HTML. Normalizes math, lists, and formatting."""
-    # Convert literal \n (from LLM/JSON) to actual newlines
-    text = text.replace("\\n", "\n")
-    # Normalize math in prose (subscripts, f(x), etc.)
-    text, emph_placeholders = _normalize_math_in_prose(text)
-    # Restore emphasis so _bold_definition_list_items can strip * from terms
-    text = _restore_emphasis(text, emph_placeholders)
-    # Ensure numbered and bullet lists parse correctly
+def _render_markdown(
+    text: str,
+    *,
+    strip_leading_heading: bool = False,
+    downgrade_headers: bool = False,
+) -> str:
+    """Render markdown while preserving math spans exactly."""
+    if not text:
+        return ""
+
     text = _ensure_numbered_lists(text)
     text = _ensure_bullet_lists(text)
-    # Bold leading terms in definition-style list items
-    text = _bold_definition_list_items(text)
+
     if strip_leading_heading:
         text = _strip_redundant_leading_heading(text, "")
-    text = _escape_markdown_in_math(text)
-    return markdown.markdown(
-        text,
-        extensions=["fenced_code", "tables"],
-    )
+    if downgrade_headers:
+        text = _downgrade_headers(text)
+
+    text, math_placeholders = _extract_math_segments(text)
+    html = markdown.markdown(text, extensions=["fenced_code", "tables", "sane_lists"])
+    return _restore_placeholders(html, math_placeholders)
+
+
+def md_to_html(text: str, strip_leading_heading: bool = False) -> str:
+    """Convert markdown to HTML."""
+    return _render_markdown(text, strip_leading_heading=strip_leading_heading)
 
 
 def md_section(text: str) -> str:
     """Like md_to_html but strips redundant leading heading and downgrades header levels."""
-    text = text.replace("\\n", "\n")
-    text, emph_placeholders = _normalize_math_in_prose(text)
-    text = _restore_emphasis(text, emph_placeholders)
-    text = _ensure_numbered_lists(text)
-    text = _ensure_bullet_lists(text)
-    text = _bold_definition_list_items(text)
-    text = _strip_redundant_leading_heading(text, "")
-    text = _downgrade_headers(text)
-    text = _escape_markdown_in_math(text)
-    return markdown.markdown(text, extensions=["fenced_code", "tables"])
+    return _render_markdown(
+        text,
+        strip_leading_heading=True,
+        downgrade_headers=True,
+    )
 
 
 def md_downgrade(text: str) -> str:
     """Like md_to_html but downgrades # to ##, ## to ### (no strip)."""
-    text = text.replace("\\n", "\n")
-    text, emph_placeholders = _normalize_math_in_prose(text)
-    text = _restore_emphasis(text, emph_placeholders)
-    text = _ensure_numbered_lists(text)
-    text = _ensure_bullet_lists(text)
-    text = _bold_definition_list_items(text)
-    text = _downgrade_headers(text)
-    text = _escape_markdown_in_math(text)
-    return markdown.markdown(text, extensions=["fenced_code", "tables"])
+    return _render_markdown(text, downgrade_headers=True)
+
+
+def _build_provenance(manifest: dict) -> dict[str, str]:
+    """Build a compact provenance summary for a technique page."""
+    artifacts = manifest.get("artifacts", {})
+    text_entry = (
+        artifacts.get("overview")
+        or artifacts.get("plan")
+        or artifacts.get("implementation")
+        or {}
+    )
+    image_entry = artifacts.get("infographic_image") or artifacts.get("preview_image") or {}
+    return {
+        "generated_at": manifest.get("updated_at") or text_entry.get("generated_at") or "Unknown",
+        "artifact_version": str(manifest.get("artifact_version", "Unknown")),
+        "text_model": text_entry.get("model") or "Unknown",
+        "image_model": image_entry.get("model") or "Not generated",
+    }
 
 
 def publish():
@@ -218,6 +193,8 @@ def publish():
     index_template = env.get_template("index.html")
     use_case_matrix_template = env.get_template("use_case_matrix.html")
 
+    if SITE_DIR.exists():
+        shutil.rmtree(SITE_DIR)
     SITE_DIR.mkdir(parents=True, exist_ok=True)
     images_dir = SITE_DIR / "images"
     images_dir.mkdir(exist_ok=True)
@@ -230,6 +207,7 @@ def publish():
 
         slug = technique_dir.name
         artifacts = load_artifacts(technique_dir)
+        manifest = load_manifest(technique_dir)
 
         if not artifacts:
             logger.warning("No artifacts found for %s, skipping", slug)
@@ -260,8 +238,8 @@ def publish():
             math_deep_dive=artifacts.get("math_deep_dive"),
             implementation=artifacts.get("implementation"),
             infographic_spec=artifacts.get("infographic_spec"),
-            quiz=artifacts.get("quiz"),
             has_infographic=has_infographic,
+            provenance=_build_provenance(manifest),
         )
         page_path = SITE_DIR / f"{slug}.html"
         page_path.write_text(html)
@@ -289,9 +267,8 @@ def publish():
     logger.info("Published index page with %d techniques", len(techniques))
 
     # Render use case matrix page (if exists)
-    use_case_matrix_path = CONTENT_DIR / "use_case_matrix.json"
-    if use_case_matrix_path.exists():
-        data = json.loads(use_case_matrix_path.read_text())
+    if USE_CASE_MATRIX_PATH.exists():
+        data = json.loads(USE_CASE_MATRIX_PATH.read_text())
         algorithms = list(data["matrix"].keys())
         algorithm_slugs = {alg: _slugify(alg) for alg in algorithms}
         matrix_html = use_case_matrix_template.render(
@@ -323,8 +300,15 @@ def publish():
 
 def _publish_quality_report(env: Environment) -> None:
     """Render the quality report page from evaluation metrics."""
-    metrics_path = CONTENT_DIR / "evaluation_metrics.json"
-    if not metrics_path.exists():
+    metrics_path = None
+    report_scope = "full"
+    if EVALUATION_LATEST_FULL_PATH.exists():
+        metrics_path = EVALUATION_LATEST_FULL_PATH
+    elif EVALUATION_LATEST_PARTIAL_PATH.exists():
+        metrics_path = EVALUATION_LATEST_PARTIAL_PATH
+        report_scope = "partial"
+
+    if metrics_path is None:
         logger.info("No evaluation metrics found, skipping quality report")
         return
 
@@ -342,24 +326,21 @@ def _publish_quality_report(env: Environment) -> None:
 
     # Build template data from metrics
     technique_data = []
-    total_artifacts = 0
-    total_passed = 0
+    summary = metrics.get("summary", {})
+    total_artifacts = summary.get("total", 0)
+    total_passed = summary.get("passed", 0)
     total_retries = 0
 
     for slug, tech_metrics in metrics.get("techniques", {}).items():
-        tech_name = slug.replace("-", " ").title()
+        tech_name = tech_metrics.get("technique_name", slug.replace("-", " ").title())
         artifacts_list = []
         tech_passed = True
 
         for art_type, art_info in tech_metrics.get("artifacts", {}).items():
             status = art_info.get("status", "unknown")
             attempts = art_info.get("attempts", 0)
-            total_artifacts += 1
             total_retries += max(0, attempts - 1)
-
-            if status == "passed":
-                total_passed += 1
-            else:
+            if status != "passed":
                 tech_passed = False
 
             artifacts_list.append({
@@ -374,12 +355,10 @@ def _publish_quality_report(env: Environment) -> None:
             "artifacts": artifacts_list,
         })
 
-    import datetime
-
     report_html = report_template.render(
-        timestamp=datetime.datetime.now(datetime.timezone.utc).strftime(
-            "%Y-%m-%d %H:%M UTC"
-        ),
+        timestamp=metrics.get("evaluated_at", ""),
+        report_scope=report_scope,
+        scope=metrics.get("scope", {}),
         total_techniques=len(technique_data),
         total_artifacts=total_artifacts,
         total_passed=total_passed,
@@ -393,4 +372,5 @@ def _publish_quality_report(env: Environment) -> None:
 
 
 if __name__ == "__main__":
+    ensure_supported_python()
     publish()
