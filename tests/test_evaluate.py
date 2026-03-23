@@ -1,7 +1,6 @@
 """Tests for the main evaluation orchestrator."""
 
 import json
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -151,19 +150,55 @@ class TestPromoteArtifact:
 
 
 class TestSaveMetrics:
-    def test_saves_metrics_file(self, tmp_path):
+    def test_saves_full_metrics_file(self, tmp_path):
         from pipeline import evaluate
 
-        original = evaluate.METRICS_PATH
-        evaluate.METRICS_PATH = tmp_path / "metrics.json"
+        original_runs = evaluate.RUNS_DIR
+        original_full = evaluate.EVALUATION_LATEST_FULL_PATH
+        original_partial = evaluate.EVALUATION_LATEST_PARTIAL_PATH
+        evaluate.RUNS_DIR = tmp_path / "runs"
+        evaluate.EVALUATION_LATEST_FULL_PATH = tmp_path / "latest-full.json"
+        evaluate.EVALUATION_LATEST_PARTIAL_PATH = tmp_path / "latest-partial.json"
 
-        metrics = {"techniques": {"cma-es": {"artifacts": {}}}}
-        path = save_metrics(metrics)
+        metrics = {
+            "evaluated_at": "2026-03-22T12:00:00+00:00",
+            "scope": {"type": "full"},
+            "techniques": {"cma-es": {"artifacts": {}}},
+        }
+        paths = save_metrics(metrics)
 
-        assert path.exists()
-        assert json.loads(path.read_text()) == metrics
+        assert paths["run_path"].exists()
+        assert paths["latest_path"].exists()
+        assert paths["latest_path"] == evaluate.EVALUATION_LATEST_FULL_PATH
+        assert json.loads(paths["latest_path"].read_text())["scope"]["type"] == "full"
 
-        evaluate.METRICS_PATH = original
+        evaluate.RUNS_DIR = original_runs
+        evaluate.EVALUATION_LATEST_FULL_PATH = original_full
+        evaluate.EVALUATION_LATEST_PARTIAL_PATH = original_partial
+
+    def test_saves_partial_metrics_file(self, tmp_path):
+        from pipeline import evaluate
+
+        original_runs = evaluate.RUNS_DIR
+        original_full = evaluate.EVALUATION_LATEST_FULL_PATH
+        original_partial = evaluate.EVALUATION_LATEST_PARTIAL_PATH
+        evaluate.RUNS_DIR = tmp_path / "runs"
+        evaluate.EVALUATION_LATEST_FULL_PATH = tmp_path / "latest-full.json"
+        evaluate.EVALUATION_LATEST_PARTIAL_PATH = tmp_path / "latest-partial.json"
+
+        metrics = {
+            "evaluated_at": "2026-03-22T12:00:00+00:00",
+            "scope": {"type": "partial"},
+            "techniques": {"cma-es": {"artifacts": {}}},
+        }
+        paths = save_metrics(metrics)
+
+        assert paths["latest_path"] == evaluate.EVALUATION_LATEST_PARTIAL_PATH
+        assert json.loads(paths["latest_path"].read_text())["scope"]["type"] == "partial"
+
+        evaluate.RUNS_DIR = original_runs
+        evaluate.EVALUATION_LATEST_FULL_PATH = original_full
+        evaluate.EVALUATION_LATEST_PARTIAL_PATH = original_partial
 
 
 class TestEvaluateTechnique:

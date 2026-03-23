@@ -39,6 +39,21 @@
             margin-bottom: 2rem;
             font-size: 0.9rem;
         }
+        .scope-banner {
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .scope-banner--full {
+            background: #e8f5e9;
+            color: var(--success);
+        }
+        .scope-banner--partial {
+            background: #fff3e0;
+            color: var(--warning);
+        }
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -141,6 +156,13 @@
             Automated evaluation results for generated educational content.
             {% if timestamp %}Last evaluated: {{ timestamp }}{% endif %}
         </p>
+        <div class="scope-banner scope-banner--{{ report_scope }}">
+            {% if report_scope == "full" %}
+            Full evaluation covering {{ scope.technique_count }} of {{ scope.expected_technique_count }} configured techniques.
+            {% else %}
+            Partial evaluation covering {{ scope.technique_count }} of {{ scope.expected_technique_count }} configured techniques.
+            {% endif %}
+        </div>
 
         <div class="disclaimer">
             This report is generated automatically by the evaluation pipeline.
@@ -152,7 +174,7 @@
 
         <div class="summary-grid">
             <div class="summary-card">
-                <div class="number">{{ total_techniques }}</div>
+                <div class="number">{{ scope.technique_count or total_techniques }}</div>
                 <div class="label">Algorithms Evaluated</div>
             </div>
             <div class="summary-card">

@@ -1,9 +1,12 @@
 """Main evaluation orchestrator — validates, judges, and promotes artifacts."""
 
+from __future__ import annotations
+
 import json
 import logging
 import re
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +14,8 @@ from pipeline.code_runner import validate_code_artifact
 from pipeline.judge import evaluate_artifact
 from pipeline.paths import (
     EVALUATION_LATEST_FULL_PATH,
+    EVALUATION_LATEST_PARTIAL_PATH,
+    GENERATED_EVALUATIONS_DIR,
     GENERATED_LOGS_DIR,
     GENERATED_TECHNIQUES_DIR,
     technique_dir,
@@ -26,6 +31,7 @@ VALIDATED_DIR = GENERATED_TECHNIQUES_DIR
 CONTENT_DIR = GENERATED_TECHNIQUES_DIR
 METRICS_PATH = EVALUATION_LATEST_FULL_PATH
 LOG_DIR = GENERATED_LOGS_DIR / "evaluation"
+RUNS_DIR = GENERATED_EVALUATIONS_DIR
 
 # Artifact types that contain executable Python code
 CODE_ARTIFACT_TYPES = {"implementation"}
@@ -253,12 +259,33 @@ def promote_artifact(
     return artifact_path
 
 
-def save_metrics(metrics: dict[str, Any]) -> Path:
-    """Save evaluation metrics to content/evaluation_metrics.json."""
-    METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    METRICS_PATH.write_text(json.dumps(metrics, indent=2))
-    logger.info("Saved evaluation metrics to %s", METRICS_PATH)
-    return METRICS_PATH
+def _metrics_filename(evaluated_at: str, scope_type: str) -> str:
+    dt = datetime.fromisoformat(evaluated_at)
+    return f"{dt.strftime('%Y%m%dT%H%M%SZ')}-{scope_type}.json"
+
+
+def save_metrics(metrics: dict[str, Any]) -> dict[str, Path]:
+    """Save evaluation metrics to a run-scoped file and the latest scope alias."""
+    scope_type = metrics.get("scope", {}).get("type", "partial")
+    evaluated_at = metrics.get("evaluated_at") or datetime.now(timezone.utc).isoformat()
+    metrics["evaluated_at"] = evaluated_at
+
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    latest_path = (
+        EVALUATION_LATEST_FULL_PATH
+        if scope_type == "full"
+        else EVALUATION_LATEST_PARTIAL_PATH
+    )
+    run_path = RUNS_DIR / _metrics_filename(evaluated_at, scope_type)
+
+    payload = json.dumps(metrics, indent=2)
+    run_path.write_text(payload)
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.write_text(payload)
+
+    logger.info("Saved evaluation metrics run to %s", run_path)
+    logger.info("Updated latest %s evaluation metrics at %s", scope_type, latest_path)
+    return {"run_path": run_path, "latest_path": latest_path}
 
 
 def save_evaluation_log(

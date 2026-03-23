@@ -1,6 +1,7 @@
 """Main pipeline orchestrator — generates all artifacts for all techniques."""
 
 import argparse
+from datetime import datetime, timezone
 import logging
 import shutil
 import sys
@@ -210,15 +211,26 @@ def main():
             techniques,
             artifact_types,
             all_technique_artifacts,
+            expected_techniques=config["techniques"],
             provider_override=args.provider,
             skip_judge=args.skip_judge,
         )
+
+    if not args.technique:
+        from pipeline.generate_use_case_matrix import main as generate_use_case_matrix
+
+        try:
+            generate_use_case_matrix(force=True)
+            logger.info("Refreshed use case matrix")
+        except Exception as e:
+            logger.error("Failed to generate use case matrix: %s", e)
 
 
 def _run_evaluation(
     techniques: list[str],
     artifact_types: list[str],
     all_artifacts: dict[str, dict[str, dict]],
+    expected_techniques: list[str],
     provider_override=None,
     skip_judge: bool = False,
 ) -> None:
@@ -246,6 +258,7 @@ def _run_evaluation(
         )
 
         metrics["techniques"][slug] = {
+            "technique_name": technique_name,
             "artifacts": result["artifacts"],
         }
 
@@ -256,7 +269,22 @@ def _run_evaluation(
             else:
                 eval_stats["failed"] += 1
 
-    save_metrics(metrics)
+    is_full_scope = sorted(techniques) == sorted(expected_techniques)
+    metrics["evaluated_at"] = datetime.now(timezone.utc).isoformat()
+    metrics["scope"] = {
+        "type": "full" if is_full_scope else "partial",
+        "technique_count": len(techniques),
+        "expected_technique_count": len(expected_techniques),
+        "technique_slugs": [slugify(name) for name in techniques],
+        "artifact_types": artifact_types,
+    }
+    metrics["summary"] = {
+        "passed": eval_stats["passed"],
+        "failed": eval_stats["failed"],
+        "total": eval_stats["total"],
+    }
+
+    saved_paths = save_metrics(metrics)
 
     logger.info("=== Evaluation Summary ===")
     logger.info(
@@ -271,6 +299,7 @@ def _run_evaluation(
             "%d artifact(s) failed evaluation — site build may be blocked",
             eval_stats["failed"],
         )
+    logger.info("Evaluation metrics saved to %s", saved_paths["latest_path"])
 
 
 if __name__ == "__main__":

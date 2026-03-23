@@ -12,6 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from pipeline.paths import (
     EVALUATION_LATEST_FULL_PATH,
+    EVALUATION_LATEST_PARTIAL_PATH,
     GENERATED_TECHNIQUES_DIR,
     SITE_DIR as DEFAULT_SITE_DIR,
     TEMPLATES_DIR,
@@ -299,12 +300,20 @@ def publish():
 
 def _publish_quality_report(env: Environment) -> None:
     """Render the quality report page from evaluation metrics."""
-    if not EVALUATION_LATEST_FULL_PATH.exists():
+    metrics_path = None
+    report_scope = "full"
+    if EVALUATION_LATEST_FULL_PATH.exists():
+        metrics_path = EVALUATION_LATEST_FULL_PATH
+    elif EVALUATION_LATEST_PARTIAL_PATH.exists():
+        metrics_path = EVALUATION_LATEST_PARTIAL_PATH
+        report_scope = "partial"
+
+    if metrics_path is None:
         logger.info("No evaluation metrics found, skipping quality report")
         return
 
     try:
-        metrics = json.loads(EVALUATION_LATEST_FULL_PATH.read_text())
+        metrics = json.loads(metrics_path.read_text())
     except (json.JSONDecodeError, OSError) as e:
         logger.warning("Could not read evaluation metrics: %s", e)
         return
@@ -317,24 +326,21 @@ def _publish_quality_report(env: Environment) -> None:
 
     # Build template data from metrics
     technique_data = []
-    total_artifacts = 0
-    total_passed = 0
+    summary = metrics.get("summary", {})
+    total_artifacts = summary.get("total", 0)
+    total_passed = summary.get("passed", 0)
     total_retries = 0
 
     for slug, tech_metrics in metrics.get("techniques", {}).items():
-        tech_name = slug.replace("-", " ").title()
+        tech_name = tech_metrics.get("technique_name", slug.replace("-", " ").title())
         artifacts_list = []
         tech_passed = True
 
         for art_type, art_info in tech_metrics.get("artifacts", {}).items():
             status = art_info.get("status", "unknown")
             attempts = art_info.get("attempts", 0)
-            total_artifacts += 1
             total_retries += max(0, attempts - 1)
-
-            if status == "passed":
-                total_passed += 1
-            else:
+            if status != "passed":
                 tech_passed = False
 
             artifacts_list.append({
@@ -349,12 +355,10 @@ def _publish_quality_report(env: Environment) -> None:
             "artifacts": artifacts_list,
         })
 
-    import datetime
-
     report_html = report_template.render(
-        timestamp=datetime.datetime.now(datetime.timezone.utc).strftime(
-            "%Y-%m-%d %H:%M UTC"
-        ),
+        timestamp=metrics.get("evaluated_at", ""),
+        report_scope=report_scope,
+        scope=metrics.get("scope", {}),
         total_techniques=len(technique_data),
         total_artifacts=total_artifacts,
         total_passed=total_passed,
