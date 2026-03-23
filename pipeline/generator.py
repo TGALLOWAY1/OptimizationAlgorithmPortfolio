@@ -126,9 +126,12 @@ def _compute_input_hash(
 
 
 def _provider_metadata(provider: Any) -> dict[str, Any]:
+    model = getattr(provider, "model", None)
+    if model is not None and not isinstance(model, (str, int, float, bool)):
+        model = str(model)
     return {
         "provider_class": type(provider).__name__,
-        "model": getattr(provider, "model", None),
+        "model": model,
     }
 
 
