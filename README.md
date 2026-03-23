@@ -55,7 +55,7 @@ git clone https://github.com/TGALLOWAY1/OptimizationAlgorithmPortfolio.git
 cd OptimizationAlgorithmPortfolio
 
 # Create virtual environment
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # Install dependencies
@@ -72,26 +72,29 @@ EOF
 
 ```bash
 # Generate all techniques
-python3 -m pipeline.generate
+python3.11 -m pipeline.generate
 
 # Generate a single technique
-python3 -m pipeline.generate --technique "Bayesian Optimization"
+python3.11 -m pipeline.generate --technique "Bayesian Optimization"
 
 # Skip image generation (faster, lower cost)
-python3 -m pipeline.generate --skip-images
+python3.11 -m pipeline.generate --skip-images
+
+# Remove stale generated outputs before regenerating
+python3.11 -m pipeline.generate --clean
 ```
 
 ### Publish Static Site
 
 ```bash
-python3 -m pipeline.publish
+python3.11 -m pipeline.publish
 ```
 
 ### Run the Application
 
 ```bash
 # Start Flask server (serves both API and static site)
-python3 api/app.py
+python3.11 api/app.py
 
 # Open http://localhost:5000 in your browser
 ```
@@ -111,7 +114,7 @@ python3 api/app.py
 ```bash
 curl -X POST http://localhost:5000/api/recommend \
   -H "Content-Type: application/json" \
-  -d '{"problem": "I need to tune hyperparameters for a neural network with expensive evaluations"}'
+  -d '{"query": "I need to tune hyperparameters for a neural network with expensive evaluations"}'
 ```
 
 ## Project Structure
@@ -133,7 +136,8 @@ OptimizationAlgorithmPortfolio/
 │   ├── prompts/                # Prompt templates
 │   └── templates/              # Jinja2 HTML templates
 ├── tests/                      # Test suite (70 tests)
-├── content/                    # Generated artifacts (gitignored)
+├── content/                    # Tracked source data (references + rubrics)
+├── generated/                  # Generated technique artifacts, matrix, and evaluation outputs
 ├── site/                       # Published HTML (gitignored)
 ├── requirements.txt            # Python dependencies
 ├── SETUP.md                    # Detailed setup instructions
@@ -155,33 +159,33 @@ The pipeline routes different artifact types to appropriate LLM providers:
 ### Content Pipeline
 
 1. **Config-driven** — `config.json` maps techniques to providers
-2. **Idempotent** — Skips existing artifacts unless `--force` is used
-3. **Schema-validated** — All JSON outputs validated against strict schemas
-4. **Retry logic** — Exponential backoff for API calls
+2. **Manifest-aware invalidation** — Artifacts regenerate when prompts, schemas, config, or artifact version change
+3. **Generated/source split** — Tracked `content/` files stay as source data; runtime outputs live under `generated/`
+4. **Schema-validated** — All JSON outputs validated against strict schemas
+5. **Retry logic** — Exponential backoff for API calls
 
 ## Testing
 
 ```bash
 # Run all tests (no API keys required — all LLM calls are mocked)
-python3 -m pytest tests/ -v
+python3.11 -m pytest tests/ -v
 
 # Run specific test file
-python3 -m pytest tests/test_api_endpoints.py -v
+python3.11 -m pytest tests/test_api_endpoints.py -v
 
 # Run with coverage
-python3 -m pytest tests/ --cov=pipeline --cov=api
+python3.11 -m pytest tests/ --cov=pipeline --cov=api
 ```
 
 ## Cost Estimates
 
-Full pipeline run (8 techniques, all artifacts):
+Full pipeline run (8 techniques, generated content + images):
 
 | Provider | Artifacts | Est. Cost |
 |----------|-----------|-----------|
-| OpenAI GPT-4o | 16 | ~$2-5 |
-| Gemini 3.1 Pro | 24 | ~$1-3 |
-| Nano Banana Pro | 8 images | ~$1-2 |
-| **Total** | **48** | **~$4-10** |
+| Gemini 3.1 Pro | Plans, technique content, homepage summaries, use-case matrix | ~$3-8 |
+| Nano Banana Pro | Infographic + preview images | ~$1-3 |
+| **Total** | **Full content refresh** | **~$4-11** |
 
 Use `--skip-images` during development to reduce costs.
 
