@@ -22,7 +22,7 @@ from pipeline.paths import (
 )
 from pipeline.retry_loop import retry_loop
 from pipeline.schema_validate import validate_schema
-from pipeline.validator import validate_artifact as run_static_checks
+from pipeline.validator import iter_string_fields, validate_artifact as run_static_checks
 
 logger = logging.getLogger(__name__)
 
@@ -66,15 +66,14 @@ def run_deterministic_checks(artifact_type: str, data: dict[str, Any]) -> dict[s
     """
     errors: list[str] = []
 
-    # Check for placeholders in all string fields
-    for key, value in data.items():
-        if isinstance(value, str):
-            for pattern in PLACEHOLDER_PATTERNS:
-                if pattern.search(value):
-                    errors.append(
-                        f"Placeholder detected in field '{key}': "
-                        f"matched pattern '{pattern.pattern}'"
-                    )
+    # Check for placeholders in all nested string fields
+    for field_path, value in iter_string_fields(data):
+        for pattern in PLACEHOLDER_PATTERNS:
+            if pattern.search(value):
+                errors.append(
+                    f"Placeholder detected in field '{field_path}': "
+                    f"matched pattern '{pattern.pattern}'"
+                )
 
     # LaTeX delimiter balance check for math-heavy artifacts
     if artifact_type in ("math_deep_dive", "overview", "implementation"):

@@ -46,6 +46,7 @@ class TestMathDeepDiveValidator:
 class TestImplementationValidator:
     def test_valid_implementation(self):
         data = {
+            "technique_slug": "gradient-descent",
             "markdown": "word " * 800 + " ```python\nprint()```",
             "pseudo_code": "FUNCTION optimize()\n  RETURN x",
             "python_examples": ["print('hello')"],
@@ -55,6 +56,7 @@ class TestImplementationValidator:
 
     def test_no_pseudocode(self):
         data = {
+            "technique_slug": "gradient-descent",
             "markdown": "word " * 900,
             "pseudo_code": "no keywords here",
             "python_examples": ["print('hello')"],
@@ -65,6 +67,7 @@ class TestImplementationValidator:
 
     def test_runtime_dependencies_must_be_raw_imports(self):
         data = {
+            "technique_slug": "gradient-descent",
             "markdown": "word " * 900,
             "pseudo_code": "FUNCTION optimize()\n  RETURN x",
             "python_examples": ["print('hello')"],
@@ -72,6 +75,54 @@ class TestImplementationValidator:
         }
         errors = validate_implementation(data)
         assert any("raw import name" in e.lower() for e in errors)
+
+    def test_redundant_heading_is_rejected(self):
+        data = {
+            "technique_slug": "gradient-descent",
+            "markdown": "# Gradient Descent Implementation\n\n" + "word " * 900,
+            "pseudo_code": "FUNCTION optimize()\n  RETURN x",
+            "python_examples": ["print('hello')"],
+            "runtime_dependencies": ["math"],
+        }
+        errors = validate_artifact("implementation", data)
+        assert any("redundant heading" in e.lower() for e in errors)
+
+    def test_wrong_technique_example_is_rejected(self):
+        data = {
+            "technique_slug": "gradient-descent",
+            "markdown": "word " * 900,
+            "pseudo_code": "FUNCTION optimize()\n  RETURN x",
+            "python_examples": ["from scipy.optimize import minimize\nminimize(f, x0, method='BFGS')"],
+            "runtime_dependencies": ["scipy"],
+            "code_variations": [],
+        }
+        errors = validate_artifact("implementation", data)
+        assert any("bfgs" in e.lower() for e in errors)
+
+
+class TestNestedArtifactValidation:
+    def test_off_topic_nested_content_is_rejected(self):
+        data = {
+            "technique_slug": "simulated-annealing",
+            "artifact_type": "math_deep_dive",
+            "markdown": "word " * 900 + " $E = mc^2$",
+            "key_equations": [
+                {
+                    "equation": "$$p = e^{-\\Delta E / T}$$",
+                    "label": "Acceptance probability",
+                    "step_by_step_derivation": [
+                        "Use the Boltzmann distribution.",
+                        "Interpret temperature as a randomness control.",
+                    ],
+                }
+            ],
+            "worked_examples": [
+                "A startup technical co-founder should focus on customer acquisition before raising a seed round."
+            ],
+            "common_confusions": ["Temperature is not literal physical heat."],
+        }
+        errors = validate_artifact("math_deep_dive", data)
+        assert any("off-topic" in e.lower() for e in errors)
 
 
 class TestInfographicSpecValidator:

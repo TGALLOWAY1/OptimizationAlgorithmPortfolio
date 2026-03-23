@@ -2,7 +2,97 @@
 
 import os
 import re
-from pathlib import Path
+from typing import Any, Iterator
+
+OFF_TOPIC_HINTS = {
+    "technical co-founder",
+    "startup",
+    "venture capital",
+    "go-to-market",
+    "seed round",
+    "product roadmap",
+    "customer acquisition",
+}
+
+TECHNIQUE_HINTS = {
+    "bayesian-optimization": {"bayesian optimization", "gaussian process", "acquisition function", "surrogate model"},
+    "genetic-algorithm": {"genetic algorithm", "population", "mutation", "crossover"},
+    "simulated-annealing": {"simulated annealing", "temperature", "cooling schedule", "metropolis"},
+    "particle-swarm-optimization": {"particle swarm optimization", "particle", "velocity", "personal best", "global best"},
+    "gradient-descent": {"gradient descent", "gradient", "learning rate", "step size"},
+    "nelder-mead-simplex": {"nelder-mead", "simplex", "reflection", "expansion", "contraction"},
+    "cma-es": {"cma-es", "covariance matrix adaptation", "evolution strategy", "covariance matrix"},
+    "differential-evolution": {"differential evolution", "mutation factor", "trial vector", "crossover rate"},
+}
+
+IMPLEMENTATION_DISALLOWED_TERMS = {
+    "gradient-descent": {"bfgs", "l-bfgs"},
+}
+
+
+def iter_string_fields(value: Any, path: str = "") -> Iterator[tuple[str, str]]:
+    """Yield every string field from a nested dict/list payload."""
+    if isinstance(value, str):
+        yield path or "root", value
+        return
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            yield from iter_string_fields(child, child_path)
+        return
+    if isinstance(value, list):
+        for index, child in enumerate(value):
+            child_path = f"{path}[{index}]" if path else f"[{index}]"
+            yield from iter_string_fields(child, child_path)
+
+
+def _has_leading_heading(markdown: str) -> bool:
+    return bool(re.match(r"^\s*#{1,2}\s+\S+", markdown))
+
+
+def _common_technique_errors(artifact_type: str, data: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    markdown = data.get("markdown", "")
+    if artifact_type in {"overview", "math_deep_dive", "implementation"} and _has_leading_heading(markdown):
+        errors.append("Markdown should not start with a redundant heading")
+
+    technique_slug = data.get("technique_slug", "")
+    if not technique_slug:
+        return errors
+
+    technique_terms = TECHNIQUE_HINTS.get(
+        technique_slug,
+        {technique_slug.replace("-", " ")},
+    )
+
+    for field_path, text in iter_string_fields(data):
+        lower_text = text.lower()
+        if len(lower_text) >= 80 and any(hint in lower_text for hint in OFF_TOPIC_HINTS):
+            if not any(term in lower_text for term in technique_terms):
+                errors.append(
+                    f"Field '{field_path}' appears off-topic for {technique_slug}"
+                )
+
+    if artifact_type == "implementation":
+        implementation_text = " ".join(
+            [
+                markdown,
+                data.get("pseudo_code", ""),
+                *data.get("python_examples", []),
+                *[variation.get("code", "") for variation in data.get("code_variations", [])],
+            ]
+        ).lower()
+        if not any(term in implementation_text for term in technique_terms):
+            errors.append(
+                f"Implementation content does not clearly reference {technique_slug}"
+            )
+        for bad_term in IMPLEMENTATION_DISALLOWED_TERMS.get(technique_slug, set()):
+            if bad_term in implementation_text:
+                errors.append(
+                    f"Implementation content appears to rely on '{bad_term}', which does not match {technique_slug}"
+                )
+
+    return errors
 
 
 def validate_overview(data: dict) -> list[str]:
@@ -101,6 +191,6 @@ def validate_artifact(artifact_type: str, data: dict) -> list[str]:
     Returns a list of error strings (empty if valid).
     """
     validator = VALIDATORS.get(artifact_type)
-    if validator is None:
-        return []
-    return validator(data)
+    errors = validator(data) if validator is not None else []
+    errors.extend(_common_technique_errors(artifact_type, data))
+    return errors
