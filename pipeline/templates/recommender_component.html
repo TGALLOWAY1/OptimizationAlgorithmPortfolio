@@ -2,11 +2,11 @@
 <section id="recommender" class="recommender">
     <div class="recommender__hero">
         <h2 class="recommender__title">Algorithm Recommender</h2>
-        <p class="recommender__subtitle">Describe your optimization problem and we'll find the best algorithm for you.</p>
+        <p class="recommender__subtitle">Describe your problem and we'll find the best technique for you.</p>
         <textarea
             id="recommender-query"
             class="recommender__textarea"
-            placeholder="Describe your optimization problem (e.g., 'I have a high-dimensional continuous space where evaluations are very expensive...')"
+            placeholder="Describe your problem (e.g., 'I have a high-dimensional continuous space where evaluations are very expensive...')"
             rows="4"
             maxlength="2000"
         ></textarea>
@@ -230,7 +230,7 @@ async function submitRecommendation() {
 
     const query = textarea.value.trim();
     if (!query) {
-        errorEl.textContent = "Please describe your optimization problem.";
+        errorEl.textContent = "Please describe your problem.";
         errorEl.hidden = false;
         return;
     }

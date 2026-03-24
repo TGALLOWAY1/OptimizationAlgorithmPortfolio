@@ -45,6 +45,12 @@ def _build_placeholder_site() -> None:
 
     config = json.loads(CONFIG_PATH.read_text())
     techniques = config.get("techniques", [])
+    topic_defaults = {
+        "name": "Algorithm Portfolio",
+        "domain": "algorithms",
+    }
+    topic = {**topic_defaults, **config.get("topic", {})}
+    topic_name = topic["name"]
 
     if SITE_DIR.exists():
         shutil.rmtree(SITE_DIR)
@@ -67,7 +73,7 @@ def _build_placeholder_site() -> None:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Optimization Algorithm Portfolio</title>
+    <title>{topic_name}</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; }}
@@ -90,24 +96,24 @@ def _build_placeholder_site() -> None:
 </head>
 <body>
     <header>
-        <h1>Optimization Algorithm Portfolio</h1>
-        <p>Comprehensive educational content on optimization techniques — mathematical foundations, implementation guides, interactive comparisons, and more.</p>
+        <h1>{topic_name}</h1>
+        <p>Comprehensive educational content — mathematical foundations, implementation guides, interactive comparisons, and more.</p>
     </header>
     <div class="container">
         <div class="info">
             <p><strong>This site is auto-deployed from GitHub Pages.</strong> Full content (deep dives, code examples, quizzes, infographics) will appear once the content pipeline has been run.</p>
         </div>
-        <h2 style="text-align:center; color:#1a237e;">Covered Algorithms</h2>
+        <h2 style="text-align:center; color:#1a237e;">Covered Techniques</h2>
         <div class="grid">{cards_html}
         </div>
     </div>
-    <footer>Optimization Algorithm Portfolio</footer>
+    <footer>{topic_name}</footer>
 </body>
 </html>"""
 
     index_path = SITE_DIR / "index.html"
     index_path.write_text(html)
-    logger.info("Published placeholder index.html with %d algorithm cards", len(techniques))
+    logger.info("Published placeholder index.html with %d technique cards", len(techniques))
 
 
 def main() -> None:

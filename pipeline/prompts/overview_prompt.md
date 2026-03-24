@@ -1,4 +1,4 @@
-You are an expert technical writer specializing in optimization algorithms. Create a comprehensive overview of the optimization technique described in the plan below.
+You are an expert technical writer specializing in {{domain}}. Create a comprehensive overview of the technique described in the plan below.
 
 ## Plan Context
 ```json

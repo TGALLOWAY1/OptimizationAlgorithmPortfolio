@@ -18,6 +18,7 @@ from pipeline.paths import (
     TEMPLATES_DIR,
     USE_CASE_MATRIX_PATH,
 )
+from pipeline.llm_client import load_topic
 from pipeline.runtime import ensure_supported_python
 
 logging.basicConfig(
@@ -184,6 +185,9 @@ def publish():
         logger.error("Content directory not found: %s", TECHNIQUES_DIR)
         sys.exit(1)
 
+    topic = load_topic()
+    topic_name = topic["name"]
+
     env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
     env.filters["markdown"] = md_to_html
     env.filters["md_section"] = md_section
@@ -240,6 +244,7 @@ def publish():
             infographic_spec=artifacts.get("infographic_spec"),
             has_infographic=has_infographic,
             provenance=_build_provenance(manifest),
+            topic_name=topic_name,
         )
         page_path = SITE_DIR / f"{slug}.html"
         page_path.write_text(html)
@@ -261,7 +266,7 @@ def publish():
         )
 
     # Render index page
-    index_html = index_template.render(techniques=techniques)
+    index_html = index_template.render(techniques=techniques, topic_name=topic_name)
     index_path = SITE_DIR / "index.html"
     index_path.write_text(index_html)
     logger.info("Published index page with %d techniques", len(techniques))
@@ -278,6 +283,7 @@ def publish():
             algorithms=algorithms,
             matrix=data["matrix"],
             algorithm_slugs=algorithm_slugs,
+            topic_name=topic_name,
         )
         (SITE_DIR / "use-case-matrix.html").write_text(matrix_html)
         logger.info("Published use case matrix page")
@@ -287,7 +293,7 @@ def publish():
     # Render compare page
     try:
         compare_template = env.get_template("compare.html")
-        compare_html = compare_template.render(techniques=techniques)
+        compare_html = compare_template.render(techniques=techniques, topic_name=topic_name)
         compare_path = SITE_DIR / "compare.html"
         compare_path.write_text(compare_html)
         logger.info("Published compare page")
@@ -295,10 +301,10 @@ def publish():
         logger.warning("Could not publish compare page: %s", e)
 
     # Render quality report if metrics exist
-    _publish_quality_report(env)
+    _publish_quality_report(env, topic_name)
 
 
-def _publish_quality_report(env: Environment) -> None:
+def _publish_quality_report(env: Environment, topic_name: str = "Algorithm Portfolio") -> None:
     """Render the quality report page from evaluation metrics."""
     metrics_path = None
     report_scope = "full"
@@ -364,6 +370,7 @@ def _publish_quality_report(env: Environment) -> None:
         total_passed=total_passed,
         total_retries=total_retries,
         techniques=technique_data,
+        topic_name=topic_name,
     )
 
     report_path = SITE_DIR / "quality-report.html"

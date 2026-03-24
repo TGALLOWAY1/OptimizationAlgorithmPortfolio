@@ -1,19 +1,12 @@
-# Optimization Algorithm Use Case Matrix — Generation Prompt
+# {{topic_name}} Use Case Matrix — Generation Prompt
 
-You are an expert in optimization algorithms. Create a comprehensive comparison table showing which optimization techniques are well-suited (or poorly suited) for different problem spaces and use cases.
+You are an expert in {{domain}}. Create a comprehensive comparison table showing which techniques are well-suited (or poorly suited) for different problem spaces and use cases.
 
 ## Techniques to Compare
 
-The following 8 optimization algorithms must appear in the matrix:
+The following techniques must appear in the matrix:
 
-- Bayesian Optimization
-- Genetic Algorithm
-- Simulated Annealing
-- Particle Swarm Optimization
-- Gradient Descent
-- Nelder-Mead Simplex
-- CMA-ES
-- Differential Evolution
+{{technique_list}}
 
 ## Problem Spaces / Use Cases
 

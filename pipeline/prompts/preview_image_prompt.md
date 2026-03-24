@@ -1,6 +1,6 @@
-Create a single, cohesive preview image for the optimization algorithm "{{technique_name}}" for use as a homepage thumbnail card.
+Create a single, cohesive preview image for "{{technique_name}}" for use as a homepage thumbnail card.
 
-**Purpose:** This image will be displayed as a 280×160px thumbnail on a grid of optimization techniques. It must look consistent with other algorithm previews and work well when cropped to a wide landscape format.
+**Purpose:** This image will be displayed as a 280×160px thumbnail on a grid of techniques. It must look consistent with other previews and work well when cropped to a wide landscape format.
 
 **Strict design requirements (apply to ALL optimization algorithm previews):**
 - Aspect ratio: 16:9 landscape. The composition must be centered and balanced so any crop works.
@@ -20,4 +20,4 @@ Create one clear visual metaphor that captures the essence of {{technique_name}}
 - An abstract diagram (flowchart, graph, or geometric form) that suggests the algorithm's logic
 - A single iconic symbol or shape that represents the technique
 
-**Output:** A high-quality PNG, 16:9 aspect ratio, suitable for web. The image must feel cohesive with a portfolio of 8 different optimization algorithms — same color scheme, same composition rules, same level of visual density.
+**Output:** A high-quality PNG, 16:9 aspect ratio, suitable for web. The image must feel cohesive with other technique previews — same color scheme, same composition rules, same level of visual density.

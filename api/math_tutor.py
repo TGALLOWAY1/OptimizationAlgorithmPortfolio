@@ -5,7 +5,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from pipeline.llm_client import generate_with_retry, get_provider
+from pipeline.llm_client import generate_with_retry, get_provider, load_topic
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +40,9 @@ def math_tutor():
     if len(context) > 5000:
         return jsonify({"error": "Context must be 5000 characters or fewer."}), 400
 
+    topic = load_topic()
     system_prompt = (
-        "You are a patient math tutor specializing in optimization algorithms. "
+        f"You are a patient math tutor specializing in {topic['domain']}. "
         "The user has highlighted a piece of text from an educational article. "
         "Explain the highlighted text clearly and thoroughly. "
         "Use LaTeX notation (inline: $...$, display: $$...$$) for all math. "

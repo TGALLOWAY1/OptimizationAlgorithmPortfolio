@@ -48,7 +48,7 @@ def adapt_code():
 
     system_prompt = (
         "You are an expert software engineer. "
-        "Adapt the given optimization algorithm implementation to the target framework. "
+        "Adapt the given algorithm implementation to the target framework. "
         "Preserve the algorithm's logic and correctness. "
         "Include all necessary imports and a brief usage example. "
         "Return valid JSON with 'adapted_code' and 'notes' fields."

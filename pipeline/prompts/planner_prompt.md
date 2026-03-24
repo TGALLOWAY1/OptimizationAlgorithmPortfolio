@@ -1,4 +1,4 @@
-You are an expert in optimization algorithms and mathematical techniques. Your task is to create a structured plan for generating educational content about the optimization technique: **{{technique_name}}**.
+You are an expert in {{domain}}. Your task is to create a structured plan for generating educational content about the technique: **{{technique_name}}**.
 
 Return a JSON object with the following fields:
 

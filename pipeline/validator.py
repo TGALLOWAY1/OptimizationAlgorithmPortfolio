@@ -1,7 +1,9 @@
 """Content validation rules beyond JSON schema checks."""
 
+import json
 import os
 import re
+from pathlib import Path
 from typing import Any, Iterator
 
 OFF_TOPIC_HINTS = {
@@ -14,7 +16,9 @@ OFF_TOPIC_HINTS = {
     "customer acquisition",
 }
 
-TECHNIQUE_HINTS = {
+# Default hints for the original optimization algorithms topic.
+# Additional hints can be added via the "technique_hints" key in config.json.
+_DEFAULT_TECHNIQUE_HINTS: dict[str, set[str]] = {
     "bayesian-optimization": {"bayesian optimization", "gaussian process", "acquisition function", "surrogate model"},
     "genetic-algorithm": {"genetic algorithm", "population", "mutation", "crossover"},
     "simulated-annealing": {"simulated annealing", "temperature", "cooling schedule", "metropolis"},
@@ -25,9 +29,39 @@ TECHNIQUE_HINTS = {
     "differential-evolution": {"differential evolution", "mutation factor", "trial vector", "crossover rate"},
 }
 
-IMPLEMENTATION_DISALLOWED_TERMS = {
+_DEFAULT_DISALLOWED_TERMS: dict[str, set[str]] = {
     "gradient-descent": {"bfgs", "l-bfgs"},
 }
+
+
+def _load_technique_hints() -> dict[str, set[str]]:
+    """Load technique hints from config.json, merging with defaults."""
+    hints = dict(_DEFAULT_TECHNIQUE_HINTS)
+    config_path = Path(__file__).parent / "config.json"
+    try:
+        config = json.loads(config_path.read_text())
+        for slug, terms in config.get("technique_hints", {}).items():
+            hints[slug] = set(terms)
+    except (json.JSONDecodeError, OSError):
+        pass
+    return hints
+
+
+def _load_disallowed_terms() -> dict[str, set[str]]:
+    """Load disallowed terms from config.json, merging with defaults."""
+    terms = dict(_DEFAULT_DISALLOWED_TERMS)
+    config_path = Path(__file__).parent / "config.json"
+    try:
+        config = json.loads(config_path.read_text())
+        for slug, bad_terms in config.get("implementation_disallowed_terms", {}).items():
+            terms[slug] = set(bad_terms)
+    except (json.JSONDecodeError, OSError):
+        pass
+    return terms
+
+
+TECHNIQUE_HINTS = _load_technique_hints()
+IMPLEMENTATION_DISALLOWED_TERMS = _load_disallowed_terms()
 
 
 def iter_string_fields(value: Any, path: str = "") -> Iterator[tuple[str, str]]:
