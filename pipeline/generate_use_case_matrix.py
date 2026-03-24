@@ -10,7 +10,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pipeline.llm_client import get_provider, generate_with_retry
+from pipeline.llm_client import get_provider, generate_with_retry, load_config, load_topic
 from pipeline.paths import PROMPTS_DIR, USE_CASE_MATRIX_PATH
 from pipeline.runtime import ensure_supported_python
 
@@ -62,11 +62,21 @@ def main(force: bool = False) -> dict:
         logger.info("Use case matrix already exists, skipping (use --force to regenerate)")
         return json.loads(output_path.read_text())
 
+    topic = load_topic()
+    config = load_config()
+    techniques = config["techniques"]
+    technique_list = "\n".join(f"- {t}" for t in techniques)
+
     prompt_path = PROMPTS_DIR / "use_case_matrix_prompt.md"
-    prompt = prompt_path.read_text()
+    prompt = (
+        prompt_path.read_text()
+        .replace("{{topic_name}}", topic["name"])
+        .replace("{{domain}}", topic["domain"])
+        .replace("{{technique_list}}", technique_list)
+    )
 
     system_prompt = (
-        "You are an expert in optimization algorithms. "
+        f"You are an expert in {topic['domain']}. "
         "Respond with valid JSON only, no markdown fences or extra text."
     )
 

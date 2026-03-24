@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{{ technique_name }} — Optimization Algorithm Portfolio</title>
+    <title>{{ technique_name }} — {{ topic_name }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css" id="highlight-theme">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -101,7 +101,7 @@
     </style>
 </head>
 <body>
-    <nav><a href="index.html">Optimization Algorithm Portfolio</a> <a href="use-case-matrix.html">Use Case Matrix</a></nav>
+    <nav><a href="index.html">{{ topic_name }}</a> <a href="use-case-matrix.html">Use Case Matrix</a></nav>
     <div class="container">
         <h1>{{ technique_name }}</h1>
         {% if provenance %}
@@ -226,7 +226,7 @@
         </div>
     </div>
 
-    <footer>Optimization Algorithm Portfolio</footer>
+    <footer>{{ topic_name }}</footer>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => hljs.highlightAll());

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{{ title }} — Optimization Algorithm Portfolio</title>
+    <title>{{ title }} — {{ topic_name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; -webkit-text-size-adjust: 100%; }
@@ -44,7 +44,7 @@
 </head>
 <body>
     <nav>
-        <a href="index.html">Optimization Algorithm Portfolio</a>
+        <a href="index.html">{{ topic_name }}</a>
         <a href="use-case-matrix.html">Use Case Matrix</a>
     </nav>
     <div class="container">
@@ -85,6 +85,6 @@
             <span><span class="legend-badge legend-badge--unsuitable">Unsuitable</span> poor fit for the problem space</span>
         </div>
     </div>
-    <footer>Optimization Algorithm Portfolio</footer>
+    <footer>{{ topic_name }}</footer>
 </body>
 </html>

@@ -1,4 +1,4 @@
-You are a senior software engineer and optimization specialist. Create a comprehensive implementation guide for the optimization technique described in the plan below.
+You are a senior software engineer specializing in {{domain}}. Create a comprehensive implementation guide for the technique described in the plan below.
 
 ## Plan Context
 ```json

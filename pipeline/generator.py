@@ -17,6 +17,7 @@ from pipeline.llm_client import (
     generate_with_retry,
     get_provider,
     load_config,
+    load_topic,
 )
 from pipeline.paths import GENERATED_TECHNIQUES_DIR, PROMPTS_DIR, technique_dir
 from pipeline.schemas import SCHEMAS
@@ -212,8 +213,11 @@ def generate_plan(
         )
 
     logger.info("Generating plan for %s", technique_name)
-    user_prompt = prompt_template.replace("{{technique_name}}", technique_name)
-    system_prompt = "You are an optimization algorithm expert. Respond with valid JSON only."
+    topic = load_topic()
+    user_prompt = prompt_template.replace("{{technique_name}}", technique_name).replace(
+        "{{domain}}", topic["domain"]
+    )
+    system_prompt = f"You are an expert in {topic['domain']}. Respond with valid JSON only."
 
     provider = get_provider("plan", override=provider_override)
     result = generate_with_retry(provider, system_prompt, user_prompt, schema)
@@ -277,11 +281,12 @@ def generate_artifact(
 
     logger.info("Generating %s for %s", artifact_type, technique_slug)
     plan_json = json.dumps(plan, indent=2)
+    topic = load_topic()
     user_prompt = prompt_template.replace("{{plan_json}}", plan_json).replace(
         "{{technique_slug}}", technique_slug
-    )
+    ).replace("{{domain}}", topic["domain"])
     system_prompt = (
-        "You are an expert in optimization algorithms. Respond with valid JSON only."
+        f"You are an expert in {topic['domain']}. Respond with valid JSON only."
     )
 
     provider = get_provider(artifact_type, override=provider_override)
@@ -357,12 +362,14 @@ def generate_homepage_summary(
 
     logger.info("Generating homepage summary for %s", technique_slug)
     overview_summary = overview.get("summary", "")
+    topic = load_topic()
     user_prompt = (
         prompt_template.replace("{{plan_json}}", json.dumps(plan, indent=2))
         .replace("{{overview_summary}}", overview_summary)
+        .replace("{{domain}}", topic["domain"])
     )
     system_prompt = (
-        "You are an expert in optimization algorithms. Respond with valid JSON only."
+        f"You are an expert in {topic['domain']}. Respond with valid JSON only."
     )
 
     provider = get_provider("homepage_summary", override=provider_override)

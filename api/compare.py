@@ -5,7 +5,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from pipeline.llm_client import generate_with_retry, get_provider
+from pipeline.llm_client import generate_with_retry, get_provider, load_topic
 from pipeline.paths import GENERATED_TECHNIQUES_DIR
 
 logger = logging.getLogger(__name__)
@@ -81,10 +81,11 @@ def compare():
     if not artifacts_b:
         return jsonify({"error": f"Algorithm '{slug_b}' not found."}), 404
 
+    topic = load_topic()
     system_prompt = (
-        "You are an expert in optimization algorithms. "
-        "Compare the two algorithms based on the provided artifacts. "
-        "Return valid JSON with pros, cons, and best-use-case for each algorithm, "
+        f"You are an expert in {topic['domain']}. "
+        "Compare the two techniques based on the provided artifacts. "
+        "Return valid JSON with pros, cons, and best-use-case for each, "
         "plus a brief summary of when to prefer one over the other."
     )
 

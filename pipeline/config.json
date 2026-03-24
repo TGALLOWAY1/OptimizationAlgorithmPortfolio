@@ -1,4 +1,10 @@
 {
+  "topic": {
+    "name": "Optimization Algorithm Portfolio",
+    "domain": "optimization algorithms",
+    "expert_role": "optimization algorithm expert",
+    "curriculum_role": "optimization curriculum designer"
+  },
   "techniques": [
     "Bayesian Optimization",
     "Genetic Algorithm",

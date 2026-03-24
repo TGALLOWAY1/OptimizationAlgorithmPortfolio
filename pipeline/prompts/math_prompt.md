@@ -1,4 +1,4 @@
-You are a mathematics professor specializing in optimization theory. Create a detailed mathematical deep dive for the optimization technique described in the plan below.
+You are a mathematics professor specializing in {{domain}}. Create a detailed mathematical deep dive for the technique described in the plan below.
 
 ## Plan Context
 ```json

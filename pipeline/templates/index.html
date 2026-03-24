@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Optimization Algorithm Portfolio</title>
+    <title>{{ topic_name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; -webkit-text-size-adjust: 100%; }
@@ -70,8 +70,8 @@
 </head>
 <body>
     <header>
-        <h1>Optimization Algorithm Portfolio</h1>
-        <p>Comprehensive educational content on optimization techniques</p>
+        <h1>{{ topic_name }}</h1>
+        <p>Comprehensive educational content on {{ topic_name | lower }}</p>
         <p style="margin-top: 0.75rem;"><a href="use-case-matrix.html" style="color: #c5cae9; text-decoration: underline;">Use Case Matrix</a> — Compare which algorithms fit which problem spaces</p>
     </header>
     <div class="container">
@@ -142,7 +142,7 @@
         </div>
     </div>
 
-    <footer>Optimization Algorithm Portfolio</footer>
+    <footer>{{ topic_name }}</footer>
 
     <script>
     /* ── Study Plan Wizard ─────────────────────────────────── */

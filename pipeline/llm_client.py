@@ -38,6 +38,18 @@ def load_config() -> dict:
         return json.load(f)
 
 
+def load_topic() -> dict:
+    """Load the topic profile from config, with sensible defaults."""
+    config = load_config()
+    defaults = {
+        "name": "Algorithm Portfolio",
+        "domain": "algorithms",
+        "expert_role": "algorithm expert",
+        "curriculum_role": "curriculum designer",
+    }
+    return {**defaults, **config.get("topic", {})}
+
+
 def _schema_for_gemini(schema: dict) -> dict:
     """Remove Gemini-unsupported schema fields (e.g. additionalProperties)."""
     result = {}

@@ -1,4 +1,4 @@
-You are a visual information designer specializing in technical education. Create a detailed infographic specification for the optimization technique described in the plan below.
+You are a visual information designer specializing in technical education. Create a detailed infographic specification for the technique described in the plan below.
 
 ## Plan Context
 ```json

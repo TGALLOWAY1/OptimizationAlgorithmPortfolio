@@ -5,7 +5,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from pipeline.llm_client import generate_with_retry, get_provider
+from pipeline.llm_client import generate_with_retry, get_provider, load_topic
 from pipeline.paths import GENERATED_TECHNIQUES_DIR
 
 logger = logging.getLogger(__name__)
@@ -85,8 +85,9 @@ def study_plan():
     if not available:
         return jsonify({"error": "No technique content is available yet."}), 404
 
+    topic = load_topic()
     system_prompt = (
-        "You are an expert optimization curriculum designer. "
+        f"You are an expert {topic['curriculum_role']}. "
         "Given a student's background and learning goals, create an ordered learning roadmap "
         "from the available techniques. The roadmap should progress from foundational to advanced. "
         "Only include techniques from the available list. "
