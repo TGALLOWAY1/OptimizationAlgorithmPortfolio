@@ -1,0 +1,160 @@
+<!-- Interactive Knowledge Graph (D3.js force-directed) -->
+{% if knowledge_graph and knowledge_graph.nodes %}
+<section id="knowledge-graph" class="kg-section">
+    <h2 class="kg-title">Algorithm Relationship Map</h2>
+    <p class="kg-subtitle">Explore how optimization algorithms relate to each other. Drag nodes, hover for details, click to navigate.</p>
+    <div class="kg-container">
+        <svg id="kg-svg"></svg>
+        <div id="kg-tooltip" class="kg-tooltip" hidden></div>
+    </div>
+    <div class="kg-legend">
+        <span class="kg-legend__item"><span class="kg-legend__dot" style="background:#e53935;"></span> Evolutionary</span>
+        <span class="kg-legend__item"><span class="kg-legend__dot" style="background:#1e88e5;"></span> Gradient-based</span>
+        <span class="kg-legend__item"><span class="kg-legend__dot" style="background:#43a047;"></span> Probabilistic</span>
+        <span class="kg-legend__item"><span class="kg-legend__dot" style="background:#fb8c00;"></span> Direct Search</span>
+    </div>
+</section>
+
+<style>
+.kg-section { margin: 2.5rem 0; }
+.kg-title { font-size: 1.6rem; color: #1a237e; text-align: center; margin-bottom: 0.4rem; }
+.kg-subtitle { text-align: center; color: #555; font-size: 0.95rem; margin-bottom: 1.25rem; }
+.kg-container { position: relative; width: 100%; height: 480px; background: #f8f9ff; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; }
+#kg-svg { width: 100%; height: 100%; }
+.kg-tooltip { position: absolute; background: #1a237e; color: white; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.85rem; max-width: 280px; line-height: 1.4; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10; }
+.kg-legend { display: flex; gap: 1.5rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+.kg-legend__item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #555; }
+.kg-legend__dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+.kg-node { cursor: pointer; transition: r 0.2s; }
+.kg-node:hover { filter: brightness(1.2); }
+.kg-label { font-size: 11px; font-weight: 600; fill: #333; pointer-events: none; text-anchor: middle; }
+.kg-edge { stroke: #bbb; stroke-opacity: 0.6; }
+.kg-edge.highlighted { stroke: #1a237e; stroke-opacity: 1; stroke-width: 2.5px; }
+.kg-edge-label { font-size: 9px; fill: #888; pointer-events: none; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function() {
+    var graphData = {{ knowledge_graph | tojson }};
+    var categoryColors = {
+        "evolutionary": "#e53935",
+        "gradient-based": "#1e88e5",
+        "probabilistic": "#43a047",
+        "direct-search": "#fb8c00"
+    };
+
+    var container = document.querySelector('.kg-container');
+    var svg = d3.select('#kg-svg');
+    var tooltip = document.getElementById('kg-tooltip');
+    var width = container.clientWidth;
+    var height = container.clientHeight;
+
+    svg.attr('viewBox', '0 0 ' + width + ' ' + height);
+
+    /* Build index for edge lookups */
+    var nodeById = {};
+    graphData.nodes.forEach(function(n) { nodeById[n.slug] = n; });
+
+    /* Create simulation */
+    var simulation = d3.forceSimulation(graphData.nodes)
+        .force('link', d3.forceLink(graphData.edges).id(function(d) { return d.slug; })
+            .distance(function(d) { return 120 + (1 - d.strength) * 80; })
+            .strength(function(d) { return 0.3 + d.strength * 0.5; }))
+        .force('charge', d3.forceManyBody().strength(-400))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide(40));
+
+    /* Edges */
+    var link = svg.append('g').selectAll('line')
+        .data(graphData.edges).enter().append('line')
+        .attr('class', 'kg-edge')
+        .attr('stroke-width', function(d) { return 1 + d.strength * 2; });
+
+    /* Edge labels */
+    var edgeLabel = svg.append('g').selectAll('text')
+        .data(graphData.edges).enter().append('text')
+        .attr('class', 'kg-edge-label')
+        .text(function(d) { return d.relationship; });
+
+    /* Nodes */
+    var node = svg.append('g').selectAll('circle')
+        .data(graphData.nodes).enter().append('circle')
+        .attr('class', 'kg-node')
+        .attr('r', 18)
+        .attr('fill', function(d) { return categoryColors[d.category] || '#999'; })
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2)
+        .call(d3.drag()
+            .on('start', dragStarted)
+            .on('drag', dragged)
+            .on('end', dragEnded));
+
+    /* Labels */
+    var label = svg.append('g').selectAll('text')
+        .data(graphData.nodes).enter().append('text')
+        .attr('class', 'kg-label')
+        .attr('dy', 32)
+        .text(function(d) { return d.label; });
+
+    /* Hover */
+    node.on('mouseover', function(event, d) {
+        tooltip.innerHTML = '<strong>' + d.label + '</strong><br>' + d.summary;
+        tooltip.hidden = false;
+        var rect = container.getBoundingClientRect();
+        tooltip.style.left = (event.clientX - rect.left + 15) + 'px';
+        tooltip.style.top = (event.clientY - rect.top - 10) + 'px';
+        /* Highlight connected edges */
+        link.classed('highlighted', function(l) {
+            var src = typeof l.source === 'object' ? l.source.slug : l.source;
+            var tgt = typeof l.target === 'object' ? l.target.slug : l.target;
+            return src === d.slug || tgt === d.slug;
+        });
+    }).on('mouseout', function() {
+        tooltip.hidden = true;
+        link.classed('highlighted', false);
+    });
+
+    /* Click to navigate */
+    node.on('click', function(event, d) {
+        window.location.href = d.slug + '.html';
+    });
+
+    /* Tick */
+    simulation.on('tick', function() {
+        link.attr('x1', function(d) { return d.source.x; })
+            .attr('y1', function(d) { return d.source.y; })
+            .attr('x2', function(d) { return d.target.x; })
+            .attr('y2', function(d) { return d.target.y; });
+        edgeLabel.attr('x', function(d) { return (d.source.x + d.target.x) / 2; })
+                 .attr('y', function(d) { return (d.source.y + d.target.y) / 2; });
+        node.attr('cx', function(d) { return d.x = Math.max(20, Math.min(width - 20, d.x)); })
+            .attr('cy', function(d) { return d.y = Math.max(20, Math.min(height - 20, d.y)); });
+        label.attr('x', function(d) { return d.x; })
+             .attr('y', function(d) { return d.y; });
+    });
+
+    function dragStarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x; d.fy = d.y;
+    }
+    function dragged(event, d) {
+        d.fx = event.x; d.fy = event.y;
+    }
+    function dragEnded(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null; d.fy = null;
+    }
+
+    /* Responsive resize */
+    window.addEventListener('resize', function() {
+        width = container.clientWidth;
+        height = container.clientHeight;
+        svg.attr('viewBox', '0 0 ' + width + ' ' + height);
+        simulation.force('center', d3.forceCenter(width / 2, height / 2));
+        simulation.alpha(0.3).restart();
+    });
+})();
+</script>
+{% endif %}

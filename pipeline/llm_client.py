@@ -7,6 +7,7 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -74,6 +75,11 @@ class LLMProvider(ABC):
     def generate(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
         """Generate structured JSON output matching the given schema."""
 
+    def generate_stream(self, system_prompt: str, user_prompt: str) -> Iterator[str]:
+        """Yield response tokens as they arrive. Override for streaming support."""
+        result = self.generate(system_prompt, user_prompt, schema={})
+        yield json.dumps(result)
+
 
 class OpenAIProvider(LLMProvider):
     """OpenAI GPT provider using the Responses API."""
@@ -96,6 +102,20 @@ class OpenAIProvider(LLMProvider):
         )
         text = response.choices[0].message.content
         return json.loads(text)
+
+    def generate_stream(self, system_prompt: str, user_prompt: str) -> Iterator[str]:
+        """Stream response tokens from OpenAI."""
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            stream=True,
+        )
+        for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 
 
 class GeminiProvider(LLMProvider):
@@ -120,6 +140,17 @@ class GeminiProvider(LLMProvider):
             ),
         )
         return json.loads(response.text)
+
+    def generate_stream(self, system_prompt: str, user_prompt: str) -> Iterator[str]:
+        """Stream response tokens from Gemini."""
+        combined_prompt = f"{system_prompt}\n\n{user_prompt}"
+        response = self.client.models.generate_content_stream(
+            model=self.model,
+            contents=combined_prompt,
+        )
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
 
 
 class NanoBananaProvider:

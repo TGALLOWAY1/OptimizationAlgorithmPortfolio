@@ -3,7 +3,7 @@
 import json
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 from pipeline.llm_client import generate_with_retry, get_provider, load_topic
 from pipeline.paths import GENERATED_TECHNIQUES_DIR
@@ -113,3 +113,52 @@ def study_plan():
     except Exception:
         logger.exception("Study plan generation failed")
         return jsonify({"error": "Failed to generate study plan. Please try again."}), 500
+
+
+@study_plan_bp.route("/api/study_plan/stream", methods=["POST"])
+def study_plan_stream():
+    """Stream a study plan generation via Server-Sent Events."""
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "JSON body is required."}), 400
+
+    background = data.get("background", "").strip()
+    goals = data.get("goals", "").strip()
+
+    if not background or not goals:
+        return jsonify({"error": "Both 'background' and 'goals' fields are required."}), 400
+
+    if len(background) > 2000 or len(goals) > 2000:
+        return jsonify({"error": "Fields must be 2000 characters or fewer."}), 400
+
+    available = _get_available_techniques()
+    if not available:
+        return jsonify({"error": "No technique content is available yet."}), 404
+
+    topic = load_topic()
+    system_prompt = (
+        f"You are an expert {topic['curriculum_role']}. "
+        "Given a student's background and learning goals, create an ordered learning roadmap "
+        "from the available techniques. The roadmap should progress from foundational to advanced. "
+        "Only include techniques from the available list. "
+        "Return valid JSON matching the schema."
+    )
+
+    user_prompt = (
+        f"## Student Background\n{background}\n\n"
+        f"## Learning Goals\n{goals}\n\n"
+        f"## Available Techniques\n```json\n{json.dumps(available, indent=2)}\n```\n\n"
+        "Create an ordered study roadmap."
+    )
+
+    def generate():
+        try:
+            provider = get_provider("study_plan")
+            for token in provider.generate_stream(system_prompt, user_prompt):
+                yield f"data: {json.dumps({'token': token})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception:
+            logger.exception("Study plan stream failed")
+            yield f"data: {json.dumps({'error': 'Failed to generate study plan.'})}\n\n"
+
+    return Response(generate(), content_type="text/event-stream")

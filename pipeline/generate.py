@@ -10,7 +10,9 @@ from pipeline.generator import (
     generate_artifact,
     generate_homepage_summary,
     generate_infographic_image,
+    generate_knowledge_graph,
     generate_plan,
+    generate_playground_config,
     generate_preview_image,
     slugify,
 )
@@ -96,6 +98,7 @@ def main():
     stats = {"generated": 0, "skipped": 0, "failed": 0}
 
     all_technique_artifacts: dict[str, dict[str, dict]] = {}
+    all_plans: dict[str, dict] = {}
 
     for technique_name in techniques:
         slug = slugify(technique_name)
@@ -117,6 +120,8 @@ def main():
             logger.error("Failed to generate plan for %s: %s", technique_name, e)
             stats["failed"] += 1
             continue
+
+        all_plans[slug] = plan
 
         # Step 2: Generate each artifact type
         infographic_spec = None
@@ -197,6 +202,35 @@ def main():
                     e,
                 )
                 stats["failed"] += 1
+
+        # Step 5: Generate playground config
+        try:
+            pg_result = generate_playground_config(
+                slug,
+                technique_name,
+                plan,
+                force=args.force,
+                provider_override=args.provider,
+            )
+            _record_status(stats, pg_result.status)
+        except Exception as e:
+            logger.error(
+                "Failed to generate playground config for %s: %s",
+                technique_name,
+                e,
+            )
+            stats["failed"] += 1
+
+    # Step 6: Generate knowledge graph (cross-technique, runs once after all plans)
+    if all_plans:
+        try:
+            kg_result = generate_knowledge_graph(
+                all_plans, force=args.force, provider_override=args.provider
+            )
+            _record_status(stats, kg_result.status)
+        except Exception as e:
+            logger.error("Failed to generate knowledge graph: %s", e)
+            stats["failed"] += 1
 
     logger.info("=== Pipeline Summary ===")
     logger.info(

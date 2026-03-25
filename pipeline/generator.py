@@ -19,7 +19,7 @@ from pipeline.llm_client import (
     load_config,
     load_topic,
 )
-from pipeline.paths import GENERATED_TECHNIQUES_DIR, PROMPTS_DIR, technique_dir
+from pipeline.paths import GENERATED_ROOT, GENERATED_TECHNIQUES_DIR, PROMPTS_DIR, technique_dir
 from pipeline.schemas import SCHEMAS
 from pipeline.validator import validate_artifact, validate_infographic_image
 
@@ -37,6 +37,8 @@ PROMPT_MAP = {
     "homepage_summary": "homepage_summary_prompt.md",
     "infographic_image": "infographic_image_prompt.md",
     "preview_image": "preview_image_prompt.md",
+    "knowledge_graph": "knowledge_graph_prompt.md",
+    "playground_config": "playground_config_prompt.md",
 }
 
 
@@ -536,4 +538,116 @@ def generate_preview_image(
         status="generated",
         path=image_path,
         input_hash=input_hash,
+    )
+
+
+def generate_knowledge_graph(
+    all_plans: dict[str, dict],
+    force: bool = False,
+    provider_override=None,
+) -> GenerationResult:
+    """Generate the knowledge graph JSON mapping relationships between all techniques."""
+    out_path = GENERATED_ROOT / "knowledge_graph.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    prompt_template = _load_prompt(PROMPT_MAP["knowledge_graph"])
+    schema = SCHEMAS["knowledge_graph"]
+    input_hash = _compute_input_hash(
+        "knowledge_graph",
+        prompt_text=prompt_template,
+        schema=schema,
+        config_slice=_config_slice("knowledge_graph"),
+        material_inputs={"all_plans": all_plans},
+    )
+
+    if not force and out_path.exists():
+        try:
+            existing = json.loads(out_path.read_text())
+            logger.info("Knowledge graph up to date, skipping")
+            return GenerationResult(
+                payload=existing, status="skipped", path=out_path, input_hash=input_hash
+            )
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    logger.info("Generating knowledge graph")
+    topic = load_topic()
+    all_plans_json = json.dumps(all_plans, indent=2)
+    user_prompt = prompt_template.replace(
+        "{{all_plans_json}}", all_plans_json
+    ).replace("{{domain}}", topic["domain"])
+    system_prompt = f"You are an expert in {topic['domain']}. Respond with valid JSON only."
+
+    provider = get_provider("knowledge_graph", override=provider_override)
+    result = generate_with_retry(provider, system_prompt, user_prompt, schema)
+
+    out_path.write_text(json.dumps(result, indent=2))
+    logger.info("Saved knowledge graph to %s", out_path)
+    return GenerationResult(
+        payload=result, status="generated", path=out_path, input_hash=input_hash
+    )
+
+
+def generate_playground_config(
+    technique_slug: str,
+    technique_name: str,
+    plan: dict,
+    force: bool = False,
+    provider_override=None,
+) -> GenerationResult:
+    """Generate playground parameter configuration for a technique."""
+    out_dir = technique_dir(technique_slug, CONTENT_DIR)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    config_path = out_dir / "playground_config.json"
+
+    prompt_template = _load_prompt(PROMPT_MAP["playground_config"])
+    schema = SCHEMAS["playground_config"]
+    input_hash = _compute_input_hash(
+        "playground_config",
+        prompt_text=prompt_template,
+        schema=schema,
+        config_slice=_config_slice("playground_config"),
+        material_inputs={"plan": plan, "technique_slug": technique_slug},
+    )
+
+    reusable, manifest = _can_reuse_artifact(
+        out_dir=out_dir,
+        artifact_key="playground_config",
+        artifact_path=config_path,
+        input_hash=input_hash,
+        force=force,
+    )
+    if reusable:
+        logger.info("Playground config up to date for %s, skipping", technique_slug)
+        return GenerationResult(
+            payload=json.loads(config_path.read_text()),
+            status="skipped",
+            path=config_path,
+            input_hash=input_hash,
+        )
+
+    logger.info("Generating playground config for %s", technique_slug)
+    topic = load_topic()
+    user_prompt = (
+        prompt_template.replace("{{plan_json}}", json.dumps(plan, indent=2))
+        .replace("{{technique_name}}", technique_name)
+        .replace("{{domain}}", topic["domain"])
+    )
+    system_prompt = f"You are an expert in {topic['domain']}. Respond with valid JSON only."
+
+    provider = get_provider("playground_config", override=provider_override)
+    result = generate_with_retry(provider, system_prompt, user_prompt, schema)
+
+    config_path.write_text(json.dumps(result, indent=2))
+    _update_manifest(
+        out_dir=out_dir,
+        manifest=manifest,
+        artifact_key="playground_config",
+        artifact_path=config_path,
+        input_hash=input_hash,
+        provider=provider,
+    )
+    logger.info("Saved playground config to %s", config_path)
+    return GenerationResult(
+        payload=result, status="generated", path=config_path, input_hash=input_hash
     )

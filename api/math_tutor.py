@@ -3,7 +3,7 @@
 import json
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 from pipeline.llm_client import generate_with_retry, get_provider, load_topic
 
@@ -69,3 +69,50 @@ def math_tutor():
     except Exception:
         logger.exception("Math tutor request failed")
         return jsonify({"error": "Failed to generate explanation. Please try again."}), 500
+
+
+def _build_math_tutor_prompts(data: dict) -> tuple[str, str] | tuple[None, None]:
+    """Extract and validate inputs, returning (system_prompt, user_prompt) or Nones."""
+    selected_text = data.get("selected_text", "").strip()
+    context = data.get("context", "").strip()
+    if not selected_text or len(selected_text) > 2000 or len(context) > 5000:
+        return None, None
+    topic = load_topic()
+    system_prompt = (
+        f"You are a patient math tutor specializing in {topic['domain']}. "
+        "The user has highlighted a piece of text from an educational article. "
+        "Explain the highlighted text clearly and thoroughly. "
+        "Use LaTeX notation (inline: $...$, display: $$...$$) for all math. "
+        "IMPORTANT: Your explanation must be strictly bounded by the provided context paragraph. "
+        "Do not introduce concepts or equations not present in the context."
+    )
+    user_prompt = (
+        f"## Highlighted Text\n{selected_text}\n\n"
+        f"## Surrounding Context\n{context}\n\n"
+        "Explain the highlighted text step by step."
+    )
+    return system_prompt, user_prompt
+
+
+@math_tutor_bp.route("/api/math_tutor/stream", methods=["POST"])
+def math_tutor_stream():
+    """Stream a math explanation token-by-token via Server-Sent Events."""
+    data = request.get_json(silent=True)
+    if not data or not data.get("selected_text", "").strip():
+        return jsonify({"error": "A non-empty 'selected_text' field is required."}), 400
+
+    system_prompt, user_prompt = _build_math_tutor_prompts(data)
+    if system_prompt is None:
+        return jsonify({"error": "Invalid input."}), 400
+
+    def generate():
+        try:
+            provider = get_provider("math_tutor")
+            for token in provider.generate_stream(system_prompt, user_prompt):
+                yield f"data: {json.dumps({'token': token})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception:
+            logger.exception("Math tutor stream failed")
+            yield f"data: {json.dumps({'error': 'Failed to generate explanation.'})}\n\n"
+
+    return Response(generate(), content_type="text/event-stream")

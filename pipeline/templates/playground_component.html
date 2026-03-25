@@ -1,0 +1,453 @@
+<!-- Interactive Algorithm Playground -->
+{% if playground_config %}
+<div class="section playground-section" id="playground">
+    <h2>Interactive Playground</h2>
+    <p class="playground-intro">Adjust parameters and watch <strong>{{ technique_name }}</strong> optimize in real-time.</p>
+    <div class="playground">
+        <div class="playground__controls">
+            {% for p in playground_config.parameters %}
+            <div class="playground__param">
+                <label class="playground__label">{{ p.label }}: <span id="param-val-{{ p.name }}">{{ p.default }}</span></label>
+                <input type="range" class="playground__slider" id="param-{{ p.name }}"
+                    min="{{ p.min }}" max="{{ p.max }}" value="{{ p.default }}" step="{{ p.step }}"
+                    data-name="{{ p.name }}"
+                    oninput="document.getElementById('param-val-{{ p.name }}').textContent = this.value; if(window._pg) window._pg.updateParam('{{ p.name }}', parseFloat(this.value));">
+                {% if p.description %}<div class="playground__desc">{{ p.description }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            <div class="playground__buttons">
+                <button class="playground__btn playground__btn--play" onclick="window._pg && window._pg.toggle();" id="pg-play-btn">Play</button>
+                <button class="playground__btn" onclick="window._pg && window._pg.step();">Step</button>
+                <button class="playground__btn playground__btn--reset" onclick="window._pg && window._pg.reset();">Reset</button>
+            </div>
+            <div class="playground__stats">
+                <div>Iteration: <strong id="pg-iter">0</strong></div>
+                <div>Best: <strong id="pg-best">—</strong></div>
+            </div>
+        </div>
+        <div class="playground__canvas-wrap">
+            <canvas id="pg-canvas" width="500" height="500"></canvas>
+        </div>
+    </div>
+</div>
+
+<style>
+.playground-intro { color: #555; font-size: 0.95rem; margin-bottom: 1rem; }
+.playground { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.playground__controls { flex: 0 0 220px; display: flex; flex-direction: column; gap: 0.75rem; }
+.playground__canvas-wrap { flex: 1; min-width: 300px; }
+#pg-canvas { width: 100%; height: auto; border-radius: 8px; border: 1px solid #e0e0e0; background: #1a1a2e; }
+.playground__param { }
+.playground__label { font-size: 0.85rem; font-weight: 600; color: #283593; display: block; margin-bottom: 0.2rem; }
+.playground__slider { width: 100%; accent-color: #1a237e; }
+.playground__desc { font-size: 0.75rem; color: #888; margin-top: 0.1rem; }
+.playground__buttons { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.playground__btn { padding: 0.5rem 1rem; border: 1px solid #c5cae9; border-radius: 6px; background: #e8eaf6; color: #1a237e; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+.playground__btn:hover { background: #c5cae9; }
+.playground__btn--play { background: #1a237e; color: white; border-color: #1a237e; }
+.playground__btn--play:hover { background: #283593; }
+.playground__btn--reset { background: #fff; }
+.playground__stats { font-size: 0.85rem; color: #555; margin-top: 0.5rem; }
+@media (max-width: 640px) { .playground { flex-direction: column; } .playground__controls { flex: 1; } }
+</style>
+
+<script>
+(function() {
+    var config = {{ playground_config | tojson }};
+    var slug = {{ slug | tojson }};
+    var canvas = document.getElementById('pg-canvas');
+    var ctx = canvas.getContext('2d');
+    var W = 500, H = 500;
+    var running = false;
+    var animId = null;
+    var iteration = 0;
+    var bestVal = Infinity;
+    var params = {};
+    config.parameters.forEach(function(p) { params[p.name] = p.default; });
+
+    /* ── Objective Functions ─────────────────── */
+    var objectives = {
+        rosenbrock: function(x, y) { return Math.pow(1 - x, 2) + 100 * Math.pow(y - x * x, 2); },
+        rastrigin: function(x, y) { return 20 + x*x - 10*Math.cos(2*Math.PI*x) + y*y - 10*Math.cos(2*Math.PI*y); },
+        sphere: function(x, y) { return x*x + y*y; },
+        ackley: function(x, y) { return -20*Math.exp(-0.2*Math.sqrt(0.5*(x*x+y*y))) - Math.exp(0.5*(Math.cos(2*Math.PI*x)+Math.cos(2*Math.PI*y))) + Math.E + 20; }
+    };
+    var objFn = objectives[config.objective_function] || objectives.sphere;
+
+    /* ── Domain bounds ───────────────────────── */
+    var bounds = { rosenbrock: [-2,2], rastrigin: [-5.12,5.12], sphere: [-5,5], ackley: [-5,5] };
+    var bnd = bounds[config.objective_function] || [-5,5];
+    var lo = bnd[0], hi = bnd[1];
+
+    /* ── Contour precomputation ──────────────── */
+    var contourRes = 100;
+    var contourData = new Float64Array(contourRes * contourRes);
+    var cMin = Infinity, cMax = -Infinity;
+    for (var ci = 0; ci < contourRes; ci++) {
+        for (var cj = 0; cj < contourRes; cj++) {
+            var cx = lo + (hi - lo) * cj / (contourRes - 1);
+            var cy = lo + (hi - lo) * ci / (contourRes - 1);
+            var cv = Math.log1p(objFn(cx, cy));
+            contourData[ci * contourRes + cj] = cv;
+            if (cv < cMin) cMin = cv;
+            if (cv > cMax) cMax = cv;
+        }
+    }
+
+    function drawContour() {
+        var imgData = ctx.createImageData(contourRes, contourRes);
+        for (var i = 0; i < contourRes * contourRes; i++) {
+            var t = (contourData[i] - cMin) / (cMax - cMin + 1e-10);
+            /* Dark blue → cyan → yellow → red gradient */
+            var r, g, b;
+            if (t < 0.25) { r = 10; g = 10 + t*4*100; b = 80 + t*4*175; }
+            else if (t < 0.5) { r = 10 + (t-0.25)*4*200; g = 110 + (t-0.25)*4*140; b = 255 - (t-0.25)*4*155; }
+            else if (t < 0.75) { r = 210 + (t-0.5)*4*45; g = 250 - (t-0.5)*4*100; b = 100 - (t-0.5)*4*80; }
+            else { r = 255; g = 150 - (t-0.75)*4*120; b = 20; }
+            imgData.data[i*4] = r; imgData.data[i*4+1] = g; imgData.data[i*4+2] = b; imgData.data[i*4+3] = 255;
+        }
+        /* Scale up to canvas */
+        var tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = contourRes; tmpCanvas.height = contourRes;
+        tmpCanvas.getContext('2d').putImageData(imgData, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(tmpCanvas, 0, 0, W, H);
+    }
+
+    function toCanvas(x, y) {
+        return [(x - lo) / (hi - lo) * W, (1 - (y - lo) / (hi - lo)) * H];
+    }
+
+    function randInBounds() { return lo + Math.random() * (hi - lo); }
+
+    /* ── Algorithm State ──────────────────────── */
+    var state = {};
+    var trail = [];
+
+    function initState() {
+        iteration = 0; bestVal = Infinity; trail = [];
+        var vizType = config.visualization_type;
+
+        if (vizType === 'population_scatter') {
+            var popSize = Math.round(params.population_size || params.populationSize || params.pop_size || 20);
+            state.population = [];
+            for (var i = 0; i < popSize; i++) {
+                state.population.push([randInBounds(), randInBounds()]);
+            }
+            state.velocities = state.population.map(function() { return [0, 0]; });
+            state.pBest = state.population.map(function(p) { return p.slice(); });
+            state.pBestVal = state.population.map(function(p) { return objFn(p[0], p[1]); });
+            state.gBest = state.population[0].slice();
+            state.gBestVal = objFn(state.gBest[0], state.gBest[1]);
+            state.population.forEach(function(p, i) {
+                if (state.pBestVal[i] < state.gBestVal) {
+                    state.gBest = p.slice(); state.gBestVal = state.pBestVal[i];
+                }
+            });
+            bestVal = state.gBestVal;
+        } else {
+            state.x = randInBounds();
+            state.y = randInBounds();
+            state.temp = params.initial_temperature || params.initialTemperature || params.temperature || 100;
+            bestVal = objFn(state.x, state.y);
+            state.bestX = state.x; state.bestY = state.y;
+            /* Nelder-Mead simplex */
+            state.simplex = [
+                [randInBounds(), randInBounds()],
+                [randInBounds(), randInBounds()],
+                [randInBounds(), randInBounds()]
+            ];
+        }
+    }
+
+    /* ── Algorithm Step Functions ─────────────── */
+    function stepGradientDescent() {
+        var lr = params.learning_rate || params.learningRate || params.lr || 0.01;
+        var h = 0.0001;
+        var dfdx = (objFn(state.x + h, state.y) - objFn(state.x - h, state.y)) / (2 * h);
+        var dfdy = (objFn(state.x, state.y + h) - objFn(state.x, state.y - h)) / (2 * h);
+        state.x -= lr * dfdx;
+        state.y -= lr * dfdy;
+        state.x = Math.max(lo, Math.min(hi, state.x));
+        state.y = Math.max(lo, Math.min(hi, state.y));
+        var val = objFn(state.x, state.y);
+        if (val < bestVal) { bestVal = val; state.bestX = state.x; state.bestY = state.y; }
+        trail.push([state.x, state.y]);
+    }
+
+    function stepSimulatedAnnealing() {
+        var cooling = params.cooling_rate || params.coolingRate || 0.995;
+        var stepSize = params.step_size || params.stepSize || 0.5;
+        var nx = state.x + (Math.random() * 2 - 1) * stepSize;
+        var ny = state.y + (Math.random() * 2 - 1) * stepSize;
+        nx = Math.max(lo, Math.min(hi, nx));
+        ny = Math.max(lo, Math.min(hi, ny));
+        var curVal = objFn(state.x, state.y);
+        var newVal = objFn(nx, ny);
+        var delta = newVal - curVal;
+        if (delta < 0 || Math.random() < Math.exp(-delta / state.temp)) {
+            state.x = nx; state.y = ny;
+        }
+        state.temp *= cooling;
+        var val = objFn(state.x, state.y);
+        if (val < bestVal) { bestVal = val; state.bestX = state.x; state.bestY = state.y; }
+        trail.push([state.x, state.y]);
+    }
+
+    function stepPSO() {
+        var w = params.inertia_weight || params.inertiaWeight || params.inertia || 0.7;
+        var c1 = params.cognitive_coefficient || params.c1 || 1.5;
+        var c2 = params.social_coefficient || params.c2 || 1.5;
+        state.population.forEach(function(p, i) {
+            var r1 = Math.random(), r2 = Math.random();
+            state.velocities[i][0] = w * state.velocities[i][0] + c1 * r1 * (state.pBest[i][0] - p[0]) + c2 * r2 * (state.gBest[0] - p[0]);
+            state.velocities[i][1] = w * state.velocities[i][1] + c1 * r1 * (state.pBest[i][1] - p[1]) + c2 * r2 * (state.gBest[1] - p[1]);
+            p[0] = Math.max(lo, Math.min(hi, p[0] + state.velocities[i][0]));
+            p[1] = Math.max(lo, Math.min(hi, p[1] + state.velocities[i][1]));
+            var val = objFn(p[0], p[1]);
+            if (val < state.pBestVal[i]) { state.pBest[i] = p.slice(); state.pBestVal[i] = val; }
+            if (val < state.gBestVal) { state.gBest = p.slice(); state.gBestVal = val; }
+        });
+        bestVal = state.gBestVal;
+    }
+
+    function stepGA() {
+        var mutRate = params.mutation_rate || params.mutationRate || 0.1;
+        var pop = state.population;
+        var fitnesses = pop.map(function(p) { return 1 / (1 + objFn(p[0], p[1])); });
+        var totalFit = fitnesses.reduce(function(a, b) { return a + b; }, 0);
+        var newPop = [];
+        for (var i = 0; i < pop.length; i++) {
+            /* Tournament selection */
+            var a = Math.floor(Math.random() * pop.length);
+            var b = Math.floor(Math.random() * pop.length);
+            var parent1 = fitnesses[a] > fitnesses[b] ? pop[a] : pop[b];
+            a = Math.floor(Math.random() * pop.length);
+            b = Math.floor(Math.random() * pop.length);
+            var parent2 = fitnesses[a] > fitnesses[b] ? pop[a] : pop[b];
+            /* Crossover */
+            var child = [
+                Math.random() < 0.5 ? parent1[0] : parent2[0],
+                Math.random() < 0.5 ? parent1[1] : parent2[1]
+            ];
+            /* Mutation */
+            if (Math.random() < mutRate) child[0] += (Math.random() * 2 - 1) * (hi - lo) * 0.1;
+            if (Math.random() < mutRate) child[1] += (Math.random() * 2 - 1) * (hi - lo) * 0.1;
+            child[0] = Math.max(lo, Math.min(hi, child[0]));
+            child[1] = Math.max(lo, Math.min(hi, child[1]));
+            newPop.push(child);
+        }
+        state.population = newPop;
+        /* Track best */
+        newPop.forEach(function(p, i) {
+            var val = objFn(p[0], p[1]);
+            if (val < bestVal) { bestVal = val; state.gBest = p.slice(); state.gBestVal = val; }
+        });
+    }
+
+    function stepDE() {
+        var F = params.differential_weight || params.F || params.scale_factor || 0.8;
+        var CR = params.crossover_rate || params.crossoverRate || params.CR || 0.9;
+        var pop = state.population;
+        var newPop = pop.map(function(target, i) {
+            var idxs = []; while (idxs.length < 3) { var r = Math.floor(Math.random() * pop.length); if (r !== i && idxs.indexOf(r) < 0) idxs.push(r); }
+            var mutant = [pop[idxs[0]][0] + F * (pop[idxs[1]][0] - pop[idxs[2]][0]), pop[idxs[0]][1] + F * (pop[idxs[1]][1] - pop[idxs[2]][1])];
+            var trial = [Math.random() < CR ? mutant[0] : target[0], Math.random() < CR ? mutant[1] : target[1]];
+            trial[0] = Math.max(lo, Math.min(hi, trial[0])); trial[1] = Math.max(lo, Math.min(hi, trial[1]));
+            return objFn(trial[0], trial[1]) < objFn(target[0], target[1]) ? trial : target;
+        });
+        state.population = newPop;
+        newPop.forEach(function(p) { var v = objFn(p[0], p[1]); if (v < bestVal) { bestVal = v; state.gBest = p.slice(); } });
+    }
+
+    function stepNelderMead() {
+        var s = state.simplex;
+        var vals = s.map(function(p) { return objFn(p[0], p[1]); });
+        /* Sort by value */
+        var order = [0, 1, 2].sort(function(a, b) { return vals[a] - vals[b]; });
+        s = [s[order[0]], s[order[1]], s[order[2]]];
+        vals = [vals[order[0]], vals[order[1]], vals[order[2]]];
+
+        var centroid = [(s[0][0] + s[1][0]) / 2, (s[0][1] + s[1][1]) / 2];
+        /* Reflect */
+        var alpha = params.reflection_coefficient || params.alpha || 1;
+        var refl = [centroid[0] + alpha * (centroid[0] - s[2][0]), centroid[1] + alpha * (centroid[1] - s[2][1])];
+        var vRefl = objFn(refl[0], refl[1]);
+        if (vRefl < vals[1] && vRefl >= vals[0]) { s[2] = refl; }
+        else if (vRefl < vals[0]) {
+            /* Expand */
+            var exp = [centroid[0] + 2 * (refl[0] - centroid[0]), centroid[1] + 2 * (refl[1] - centroid[1])];
+            s[2] = objFn(exp[0], exp[1]) < vRefl ? exp : refl;
+        } else {
+            /* Contract */
+            var cont = [centroid[0] + 0.5 * (s[2][0] - centroid[0]), centroid[1] + 0.5 * (s[2][1] - centroid[1])];
+            if (objFn(cont[0], cont[1]) < vals[2]) { s[2] = cont; }
+            else { /* Shrink */ s[1] = [(s[0][0]+s[1][0])/2, (s[0][1]+s[1][1])/2]; s[2] = [(s[0][0]+s[2][0])/2, (s[0][1]+s[2][1])/2]; }
+        }
+        state.simplex = s;
+        var best = s[0]; var bv = objFn(best[0], best[1]);
+        if (bv < bestVal) { bestVal = bv; state.bestX = best[0]; state.bestY = best[1]; }
+        trail.push(s[0].slice());
+    }
+
+    function stepCMAES() {
+        /* Simplified CMA-ES: sample around mean with adaptive sigma */
+        var sigma = params.sigma || params.step_size || 0.5;
+        var pop = state.population;
+        var mean = pop.reduce(function(acc, p) { return [acc[0]+p[0]/pop.length, acc[1]+p[1]/pop.length]; }, [0,0]);
+        var newPop = [];
+        for (var i = 0; i < pop.length; i++) {
+            var nx = mean[0] + sigma * (Math.random() * 2 - 1) * (hi - lo) * 0.2;
+            var ny = mean[1] + sigma * (Math.random() * 2 - 1) * (hi - lo) * 0.2;
+            newPop.push([Math.max(lo, Math.min(hi, nx)), Math.max(lo, Math.min(hi, ny))]);
+        }
+        /* Select top half */
+        newPop.sort(function(a, b) { return objFn(a[0], a[1]) - objFn(b[0], b[1]); });
+        var elite = newPop.slice(0, Math.ceil(pop.length / 2));
+        /* Fill rest by sampling around elite mean */
+        var eMean = elite.reduce(function(acc, p) { return [acc[0]+p[0]/elite.length, acc[1]+p[1]/elite.length]; }, [0,0]);
+        while (elite.length < pop.length) { elite.push([eMean[0] + sigma*0.5*(Math.random()*2-1), eMean[1] + sigma*0.5*(Math.random()*2-1)]); }
+        state.population = elite;
+        elite.forEach(function(p) { var v = objFn(p[0], p[1]); if (v < bestVal) { bestVal = v; state.gBest = p.slice(); } });
+    }
+
+    function stepBayesian() {
+        /* Simplified: random sampling with bias toward best region */
+        var explorationRate = params.exploration_rate || params.explorationRate || 0.3;
+        var nx, ny;
+        if (Math.random() < explorationRate) {
+            nx = randInBounds(); ny = randInBounds();
+        } else {
+            nx = state.bestX + (Math.random() * 2 - 1) * (hi - lo) * 0.15;
+            ny = state.bestY + (Math.random() * 2 - 1) * (hi - lo) * 0.15;
+            nx = Math.max(lo, Math.min(hi, nx)); ny = Math.max(lo, Math.min(hi, ny));
+        }
+        var val = objFn(nx, ny);
+        if (val < bestVal) { bestVal = val; state.bestX = nx; state.bestY = ny; }
+        state.x = nx; state.y = ny;
+        trail.push([nx, ny]);
+    }
+
+    /* ── Algorithm dispatch ───────────────────── */
+    var algorithmSteps = {
+        'gradient-descent': stepGradientDescent,
+        'simulated-annealing': stepSimulatedAnnealing,
+        'particle-swarm-optimization': stepPSO,
+        'genetic-algorithm': stepGA,
+        'differential-evolution': stepDE,
+        'nelder-mead-simplex': stepNelderMead,
+        'cma-es': stepCMAES,
+        'bayesian-optimization': stepBayesian
+    };
+
+    var stepFn = algorithmSteps[slug] || stepGradientDescent;
+
+    /* ── Drawing ──────────────────────────────── */
+    function draw() {
+        drawContour();
+        var vizType = config.visualization_type;
+
+        if (vizType === 'population_scatter') {
+            /* Draw population */
+            state.population.forEach(function(p) {
+                var pt = toCanvas(p[0], p[1]);
+                ctx.beginPath(); ctx.arc(pt[0], pt[1], 5, 0, 2*Math.PI);
+                ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+                ctx.strokeStyle = '#1a237e'; ctx.lineWidth = 1.5; ctx.stroke();
+            });
+            /* Draw global best */
+            if (state.gBest) {
+                var gb = toCanvas(state.gBest[0], state.gBest[1]);
+                ctx.beginPath(); ctx.arc(gb[0], gb[1], 8, 0, 2*Math.PI);
+                ctx.fillStyle = '#ffeb3b'; ctx.fill();
+                ctx.strokeStyle = '#f57f17'; ctx.lineWidth = 2; ctx.stroke();
+            }
+        } else {
+            /* Draw trail */
+            if (trail.length > 1) {
+                ctx.beginPath();
+                var start = toCanvas(trail[0][0], trail[0][1]);
+                ctx.moveTo(start[0], start[1]);
+                for (var i = 1; i < trail.length; i++) {
+                    var pt = toCanvas(trail[i][0], trail[i][1]);
+                    ctx.lineTo(pt[0], pt[1]);
+                }
+                ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+            }
+            /* Draw trail dots with fade */
+            var trailLen = trail.length;
+            trail.forEach(function(p, i) {
+                var pt = toCanvas(p[0], p[1]);
+                var alpha = 0.15 + 0.85 * (i / Math.max(trailLen - 1, 1));
+                ctx.beginPath(); ctx.arc(pt[0], pt[1], 3, 0, 2*Math.PI);
+                ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')'; ctx.fill();
+            });
+            /* Draw current position */
+            if (trail.length > 0) {
+                var cur = trail[trail.length - 1];
+                var cp = toCanvas(cur[0], cur[1]);
+                ctx.beginPath(); ctx.arc(cp[0], cp[1], 7, 0, 2*Math.PI);
+                ctx.fillStyle = '#ffeb3b'; ctx.fill();
+                ctx.strokeStyle = '#f57f17'; ctx.lineWidth = 2; ctx.stroke();
+            }
+            /* Nelder-Mead simplex triangle */
+            if (slug === 'nelder-mead-simplex' && state.simplex) {
+                ctx.beginPath();
+                var s0 = toCanvas(state.simplex[0][0], state.simplex[0][1]);
+                ctx.moveTo(s0[0], s0[1]);
+                for (var si = 1; si < state.simplex.length; si++) {
+                    var sp = toCanvas(state.simplex[si][0], state.simplex[si][1]);
+                    ctx.lineTo(sp[0], sp[1]);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(255,235,59,0.8)'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = 'rgba(255,235,59,0.15)'; ctx.fill();
+            }
+        }
+
+        /* Update stats */
+        document.getElementById('pg-iter').textContent = iteration;
+        document.getElementById('pg-best').textContent = bestVal < 1e6 ? bestVal.toFixed(4) : bestVal.toExponential(2);
+    }
+
+    function doStep() {
+        stepFn();
+        iteration++;
+        draw();
+    }
+
+    function animate() {
+        if (!running) return;
+        doStep();
+        animId = requestAnimationFrame(animate);
+    }
+
+    /* ── Public API ───────────────────────────── */
+    window._pg = {
+        toggle: function() {
+            running = !running;
+            document.getElementById('pg-play-btn').textContent = running ? 'Pause' : 'Play';
+            if (running) animate();
+            else if (animId) cancelAnimationFrame(animId);
+        },
+        step: function() {
+            running = false;
+            document.getElementById('pg-play-btn').textContent = 'Play';
+            if (animId) cancelAnimationFrame(animId);
+            doStep();
+        },
+        reset: function() {
+            running = false;
+            document.getElementById('pg-play-btn').textContent = 'Play';
+            if (animId) cancelAnimationFrame(animId);
+            initState(); draw();
+        },
+        updateParam: function(name, value) { params[name] = value; }
+    };
+
+    /* ── Init ─────────────────────────────────── */
+    initState();
+    draw();
+})();
+</script>
+{% endif %}
