@@ -189,6 +189,50 @@ Full pipeline run (8 techniques, generated content + images):
 
 Use `--skip-images` during development to reduce costs.
 
+## Manual Verification Checklist
+
+After generating content and publishing the site, verify these features manually:
+
+### SSE Streaming (Feature 1)
+- [ ] Open a technique page (e.g., `gradient-descent.html`)
+- [ ] In the **Mathematical Deep Dive** section, select an equation and click "Explain this"
+- [ ] Verify the Math Tutor sidebar opens and text streams in token-by-token (not all at once)
+- [ ] Verify KaTeX renders math correctly after streaming completes
+- [ ] On the homepage, open the **Study Plan** modal, fill in background and goals, and click "Generate Plan"
+- [ ] Verify the loading text animates ("Generating your study plan...", dots cycle)
+- [ ] Verify the study plan timeline renders correctly after streaming finishes
+
+### Knowledge Graph (Feature 2)
+- [ ] On the homepage (`index.html`), verify the **Algorithm Relationship Map** section appears
+- [ ] Verify all 8 algorithm nodes are visible as colored circles
+- [ ] Verify nodes are color-coded by category (red=evolutionary, blue=gradient-based, green=probabilistic, orange=direct-search)
+- [ ] Drag a node — verify the physics simulation responds (other nodes adjust)
+- [ ] Hover a node — verify a tooltip appears showing the algorithm name and summary
+- [ ] Hover a node — verify connected edges are highlighted
+- [ ] Click a node — verify it navigates to the correct technique page
+- [ ] Verify the legend at the bottom shows all 4 categories
+- [ ] Resize the browser window — verify the graph adjusts responsively
+
+### Algorithm Playground (Feature 3)
+- [ ] Open a technique page (e.g., `gradient-descent.html`)
+- [ ] Verify the **Interactive Playground** section appears below Implementation
+- [ ] Verify parameter sliders are present and labeled correctly
+- [ ] Verify the contour plot renders on the dark canvas (color gradient visible)
+- [ ] Click **Play** — verify the algorithm animates on the contour plot
+- [ ] Click **Pause** — verify the animation stops
+- [ ] Click **Step** — verify a single iteration executes
+- [ ] Click **Reset** — verify the state resets (trail cleared, iteration counter resets)
+- [ ] Adjust a parameter slider — verify the value label updates
+- [ ] Verify the **Iteration** and **Best** stats update during animation
+- [ ] Check `genetic-algorithm.html` — verify population dots (scatter) instead of single trajectory
+- [ ] Check `nelder-mead-simplex.html` — verify simplex triangle is drawn
+- [ ] Check `particle-swarm-optimization.html` — verify multiple particles move with a highlighted global best
+
+### Cross-Cutting
+- [ ] Run `python -m pytest tests/ -v` — verify all 155 tests pass
+- [ ] Open the site on mobile (or use browser devtools responsive mode) — verify all features are usable
+- [ ] Verify no console errors in browser developer tools on homepage and technique pages
+
 ## Contributing
 
 1. Fork the repository
