@@ -13,6 +13,7 @@ from jinja2 import Environment, FileSystemLoader
 from pipeline.paths import (
     EVALUATION_LATEST_FULL_PATH,
     EVALUATION_LATEST_PARTIAL_PATH,
+    GENERATED_ROOT,
     GENERATED_TECHNIQUES_DIR,
     SITE_DIR as DEFAULT_SITE_DIR,
     TEMPLATES_DIR,
@@ -242,6 +243,7 @@ def publish():
             math_deep_dive=artifacts.get("math_deep_dive"),
             implementation=artifacts.get("implementation"),
             infographic_spec=artifacts.get("infographic_spec"),
+            playground_config=artifacts.get("playground_config"),
             has_infographic=has_infographic,
             provenance=_build_provenance(manifest),
             topic_name=topic_name,
@@ -265,8 +267,19 @@ def publish():
             }
         )
 
+    # Load knowledge graph if available
+    knowledge_graph = None
+    kg_path = GENERATED_ROOT / "knowledge_graph.json"
+    if kg_path.exists():
+        try:
+            knowledge_graph = json.loads(kg_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            logger.warning("Could not load knowledge_graph.json")
+
     # Render index page
-    index_html = index_template.render(techniques=techniques, topic_name=topic_name)
+    index_html = index_template.render(
+        techniques=techniques, topic_name=topic_name, knowledge_graph=knowledge_graph
+    )
     index_path = SITE_DIR / "index.html"
     index_path.write_text(index_html)
     logger.info("Published index page with %d techniques", len(techniques))

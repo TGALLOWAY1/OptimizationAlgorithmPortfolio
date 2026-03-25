@@ -229,6 +229,90 @@ HOMEPAGE_SUMMARY_SCHEMA = {
     "additionalProperties": False,
 }
 
+KNOWLEDGE_GRAPH_SCHEMA = {
+    "type": "object",
+    "required": ["nodes", "edges"],
+    "properties": {
+        "nodes": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["slug", "label", "category", "summary"],
+                "properties": {
+                    "slug": {"type": "string", "minLength": 1},
+                    "label": {"type": "string", "minLength": 1},
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "evolutionary",
+                            "gradient-based",
+                            "probabilistic",
+                            "direct-search",
+                        ],
+                    },
+                    "summary": {"type": "string", "minLength": 1},
+                },
+                "additionalProperties": False,
+            },
+            "minItems": 1,
+        },
+        "edges": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["source", "target", "relationship", "strength"],
+                "properties": {
+                    "source": {"type": "string", "minLength": 1},
+                    "target": {"type": "string", "minLength": 1},
+                    "relationship": {"type": "string", "minLength": 1},
+                    "strength": {"type": "number", "minimum": 0, "maximum": 1},
+                },
+                "additionalProperties": False,
+            },
+            "minItems": 1,
+        },
+    },
+    "additionalProperties": False,
+}
+
+PLAYGROUND_CONFIG_SCHEMA = {
+    "type": "object",
+    "required": ["parameters", "objective_function", "visualization_type"],
+    "properties": {
+        "parameters": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["name", "label", "min", "max", "default", "step"],
+                "properties": {
+                    "name": {"type": "string", "minLength": 1},
+                    "label": {"type": "string", "minLength": 1},
+                    "min": {"type": "number"},
+                    "max": {"type": "number"},
+                    "default": {"type": "number"},
+                    "step": {"type": "number"},
+                    "description": {"type": "string"},
+                },
+                "additionalProperties": False,
+            },
+            "minItems": 1,
+        },
+        "objective_function": {
+            "type": "string",
+            "enum": ["rosenbrock", "rastrigin", "sphere", "ackley"],
+        },
+        "visualization_type": {
+            "type": "string",
+            "enum": [
+                "contour_trajectory",
+                "population_scatter",
+                "convergence_curve",
+            ],
+        },
+    },
+    "additionalProperties": False,
+}
+
 SCHEMAS = {
     "plan": PLAN_SCHEMA,
     "overview": OVERVIEW_SCHEMA,
@@ -236,4 +320,6 @@ SCHEMAS = {
     "implementation": IMPLEMENTATION_SCHEMA,
     "infographic_spec": INFOGRAPHIC_SPEC_SCHEMA,
     "homepage_summary": HOMEPAGE_SUMMARY_SCHEMA,
+    "knowledge_graph": KNOWLEDGE_GRAPH_SCHEMA,
+    "playground_config": PLAYGROUND_CONFIG_SCHEMA,
 }

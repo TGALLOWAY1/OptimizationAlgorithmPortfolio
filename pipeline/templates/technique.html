@@ -194,6 +194,8 @@
         </div>
         {% endif %}
 
+        {% include "playground_component.html" %}
+
         {% if has_infographic %}
         <div class="section infographic">
             <h2>Infographic</h2>
@@ -275,17 +277,53 @@
         content.appendChild(loading);
         loading.hidden = false;
 
-        fetch('/api/math_tutor', {
+        /* Stream explanation via SSE for real-time feel */
+        fetch('/api/math_tutor/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ selected_text: selectedText, context: context })
         })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+        .then(function(response) {
             loading.hidden = true;
-            if (data.error) { content.innerHTML = '<p style="color:#d32f2f;">' + data.error + '</p>'; return; }
-            content.innerHTML = '<div>' + data.explanation + '</div>';
-            if (typeof renderMathInElement === 'function') { renderMathInElement(content, {delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}]}); }
+            var outputDiv = document.createElement('div');
+            outputDiv.className = 'math-tutor-stream-output';
+            content.innerHTML = '';
+            content.appendChild(outputDiv);
+
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+            var fullText = '';
+
+            function processStream() {
+                reader.read().then(function(result) {
+                    if (result.done) {
+                        /* Final render with KaTeX */
+                        if (typeof renderMathInElement === 'function') {
+                            renderMathInElement(content, {delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}]});
+                        }
+                        return;
+                    }
+                    buffer += decoder.decode(result.value, { stream: true });
+                    var lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    lines.forEach(function(line) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                var payload = JSON.parse(line.slice(6));
+                                if (payload.token) {
+                                    fullText += payload.token;
+                                    outputDiv.textContent = fullText;
+                                } else if (payload.error) {
+                                    outputDiv.innerHTML = '<p style="color:#d32f2f;">' + payload.error + '</p>';
+                                }
+                            } catch(e) {}
+                        }
+                    });
+                    processStream();
+                });
+            }
+            processStream();
         })
         .catch(function(err) {
             loading.hidden = true;

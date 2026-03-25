@@ -77,6 +77,8 @@
     <div class="container">
         {% include "recommender_component.html" %}
 
+        {% include "knowledge_graph_component.html" %}
+
         <div class="action-bar">
             <button class="action-bar__btn action-bar__btn--outline" onclick="window.location.href='compare.html'">Compare Algorithms</button>
             <button class="action-bar__btn action-bar__btn--outline" onclick="openStudyPlan()">Generate Study Plan</button>
@@ -184,16 +186,64 @@
         var loading = document.getElementById('sp-loading');
         var resultDiv = document.getElementById('sp-result');
         loading.hidden = false;
+        loading.textContent = 'Generating your study plan';
         resultDiv.innerHTML = '';
 
-        fetch('/api/study_plan', {
+        /* Stream via SSE for real-time feel */
+        fetch('/api/study_plan/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ background: background, goals: goals })
         })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+        .then(function(response) {
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+            var fullText = '';
+            var dotCount = 0;
+            var dotInterval = setInterval(function() {
+                dotCount = (dotCount + 1) % 4;
+                loading.textContent = 'Generating your study plan' + '.'.repeat(dotCount);
+            }, 400);
+
+            function processStream() {
+                reader.read().then(function(result) {
+                    if (result.done) {
+                        clearInterval(dotInterval);
+                        _parseAndRenderStudyPlan(fullText, loading, resultDiv);
+                        return;
+                    }
+                    buffer += decoder.decode(result.value, { stream: true });
+                    var lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    lines.forEach(function(line) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                var payload = JSON.parse(line.slice(6));
+                                if (payload.token) { fullText += payload.token; }
+                                else if (payload.error) {
+                                    clearInterval(dotInterval);
+                                    loading.hidden = true;
+                                    resultDiv.innerHTML = '<p style="color:#d32f2f;">' + escapeHtml(payload.error) + '</p>';
+                                }
+                            } catch(e) {}
+                        }
+                    });
+                    processStream();
+                });
+            }
+            processStream();
+        })
+        .catch(function() {
             loading.hidden = true;
+            resultDiv.innerHTML = '<p style="color:#d32f2f;">Failed to generate study plan.</p>';
+        });
+    }
+
+    function _parseAndRenderStudyPlan(jsonText, loading, resultDiv) {
+        loading.hidden = true;
+        try {
+            var data = JSON.parse(jsonText);
             if (data.error) {
                 resultDiv.innerHTML = '<p style="color:#d32f2f;">' + escapeHtml(data.error) + '</p>';
                 return;
@@ -212,11 +262,9 @@
                 html += '<div class="sp-rationale">' + escapeHtml(data.rationale) + '</div>';
             }
             resultDiv.innerHTML = html;
-        })
-        .catch(function() {
-            loading.hidden = true;
-            resultDiv.innerHTML = '<p style="color:#d32f2f;">Failed to generate study plan.</p>';
-        });
+        } catch(e) {
+            resultDiv.innerHTML = '<p style="color:#d32f2f;">Failed to parse study plan response.</p>';
+        }
     }
 
     function escapeHtml(str) {

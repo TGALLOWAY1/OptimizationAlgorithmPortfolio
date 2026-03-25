@@ -48,6 +48,8 @@
     "compare": "openai",
     "study_plan": "openai",
     "adapt_code": "openai",
-    "judge": "openai"
+    "judge": "openai",
+    "knowledge_graph": "openai",
+    "playground_config": "openai"
   }
 }
