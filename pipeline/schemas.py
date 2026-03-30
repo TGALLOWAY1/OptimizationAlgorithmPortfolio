@@ -244,10 +244,10 @@ KNOWLEDGE_GRAPH_SCHEMA = {
                     "category": {
                         "type": "string",
                         "enum": [
-                            "evolutionary",
-                            "gradient-based",
-                            "probabilistic",
-                            "direct-search",
+                            "selection-policy",
+                            "simulation-enhancement",
+                            "parallelization",
+                            "meta-optimization",
                         ],
                     },
                     "summary": {"type": "string", "minLength": 1},
@@ -299,14 +299,15 @@ PLAYGROUND_CONFIG_SCHEMA = {
         },
         "objective_function": {
             "type": "string",
-            "enum": ["rosenbrock", "rastrigin", "sphere", "ackley"],
+            "enum": ["game_tree", "random_tree", "adversarial_tree", "blokus_position"],
         },
         "visualization_type": {
             "type": "string",
             "enum": [
-                "contour_trajectory",
-                "population_scatter",
+                "tree_expansion",
+                "visit_heatmap",
                 "convergence_curve",
+                "win_rate_over_time",
             ],
         },
     },

@@ -16,22 +16,20 @@ OFF_TOPIC_HINTS = {
     "customer acquisition",
 }
 
-# Default hints for the original optimization algorithms topic.
+# Default hints for the MCTS strategies topic.
 # Additional hints can be added via the "technique_hints" key in config.json.
 _DEFAULT_TECHNIQUE_HINTS: dict[str, set[str]] = {
-    "bayesian-optimization": {"bayesian optimization", "gaussian process", "acquisition function", "surrogate model"},
-    "genetic-algorithm": {"genetic algorithm", "population", "mutation", "crossover"},
-    "simulated-annealing": {"simulated annealing", "temperature", "cooling schedule", "metropolis"},
-    "particle-swarm-optimization": {"particle swarm optimization", "particle", "velocity", "personal best", "global best"},
-    "gradient-descent": {"gradient descent", "gradient", "learning rate", "step size"},
-    "nelder-mead-simplex": {"nelder-mead", "simplex", "reflection", "expansion", "contraction"},
-    "cma-es": {"cma-es", "covariance matrix adaptation", "evolution strategy", "covariance matrix"},
-    "differential-evolution": {"differential evolution", "mutation factor", "trial vector", "crossover rate"},
+    "uct-upper-confidence-bounds-for-trees": {"uct", "ucb1", "upper confidence bound", "exploration constant", "bandit", "selection policy"},
+    "rave-rapid-action-value-estimation": {"rave", "amaf", "all-moves-as-first", "rapid action value", "beta", "rave_k"},
+    "progressive-history-and-progressive-widening": {"progressive history", "progressive widening", "history table", "action reduction", "pw_alpha"},
+    "nst-n-gram-selection-technique": {"nst", "n-gram", "bigram", "move pair", "rollout bias", "softmax"},
+    "rollout-policy-strategies": {"rollout", "simulation", "playout", "heuristic rollout", "random rollout", "cutoff depth"},
+    "opponent-modeling-in-mcts": {"opponent model", "alliance detection", "kingmaker", "defensive", "adaptive profile", "blocking rate"},
+    "root-and-tree-parallelization": {"root parallel", "tree parallel", "virtual loss", "worker", "leaf parallel"},
+    "adaptive-meta-optimization": {"adaptive exploration", "sufficiency threshold", "branching factor", "adaptive rollout depth", "loss avoidance"},
 }
 
-_DEFAULT_DISALLOWED_TERMS: dict[str, set[str]] = {
-    "gradient-descent": {"bfgs", "l-bfgs"},
-}
+_DEFAULT_DISALLOWED_TERMS: dict[str, set[str]] = {}
 
 
 def _load_technique_hints() -> dict[str, set[str]]:

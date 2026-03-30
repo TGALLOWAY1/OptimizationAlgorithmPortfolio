@@ -1,19 +1,19 @@
 {
   "topic": {
-    "name": "Optimization Algorithm Portfolio",
-    "domain": "optimization algorithms",
-    "expert_role": "optimization algorithm expert",
-    "curriculum_role": "optimization curriculum designer"
+    "name": "MCTS Strategy Portfolio",
+    "domain": "Monte Carlo Tree Search strategies and enhancements",
+    "expert_role": "Monte Carlo Tree Search research expert",
+    "curriculum_role": "MCTS curriculum designer"
   },
   "techniques": [
-    "Bayesian Optimization",
-    "Genetic Algorithm",
-    "Simulated Annealing",
-    "Particle Swarm Optimization",
-    "Gradient Descent",
-    "Nelder-Mead Simplex",
-    "CMA-ES",
-    "Differential Evolution"
+    "UCT (Upper Confidence Bounds for Trees)",
+    "RAVE (Rapid Action Value Estimation)",
+    "Progressive History and Progressive Widening",
+    "NST (N-gram Selection Technique)",
+    "Rollout Policy Strategies",
+    "Opponent Modeling in MCTS",
+    "Root and Tree Parallelization",
+    "Adaptive Meta-Optimization"
   ],
   "artifact_types": [
     "overview",
@@ -35,6 +35,17 @@
       "api_key_env": "GEMINI_API_KEY"
     }
   },
+  "technique_hints": {
+    "uct-upper-confidence-bounds-for-trees": ["uct", "ucb1", "upper confidence bound", "exploration constant", "bandit", "selection policy"],
+    "rave-rapid-action-value-estimation": ["rave", "amaf", "all-moves-as-first", "rapid action value", "beta", "rave_k"],
+    "progressive-history-and-progressive-widening": ["progressive history", "progressive widening", "history table", "action reduction", "pw_alpha"],
+    "nst-n-gram-selection-technique": ["nst", "n-gram", "bigram", "move pair", "rollout bias", "softmax"],
+    "rollout-policy-strategies": ["rollout", "simulation", "playout", "heuristic rollout", "random rollout", "two-ply", "cutoff depth", "minimax backup"],
+    "opponent-modeling-in-mcts": ["opponent model", "alliance detection", "kingmaker", "defensive", "adaptive profile", "blocking rate"],
+    "root-and-tree-parallelization": ["root parallel", "tree parallel", "virtual loss", "worker", "thread", "leaf parallel"],
+    "adaptive-meta-optimization": ["adaptive exploration", "sufficiency threshold", "branching factor", "adaptive rollout depth", "loss avoidance", "meta-optimization"]
+  },
+  "implementation_disallowed_terms": {},
   "artifact_provider_map": {
     "plan": "gemini",
     "overview": "gemini",

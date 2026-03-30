@@ -1,6 +1,6 @@
 You are an expert in {{domain}}.
 
-Given the following plan for the optimization algorithm "{{technique_name}}", generate a playground configuration that defines interactive parameters users can adjust to visualize the algorithm's behavior.
+Given the following plan for the MCTS strategy "{{technique_name}}", generate a playground configuration that defines interactive parameters users can adjust to visualize the strategy's behavior in a game tree.
 
 ## Technique Plan
 ```json
@@ -11,18 +11,19 @@ Given the following plan for the optimization algorithm "{{technique_name}}", ge
 
 1. Choose 2-4 key **parameters** that are most educational to adjust interactively:
    - Each parameter needs: name (camelCase), label (display), min, max, default, step, description
-   - Pick parameters that visibly change the algorithm's behavior on a 2D function
-   - Examples: learning_rate, population_size, mutation_rate, temperature, inertia_weight
+   - Pick parameters that visibly change the strategy's behavior in a game tree search
+   - Examples: explorationConstant, raveK, rolloutDepth, numWorkers, progressiveWidthAlpha
 
-2. Choose the best **objective_function** for demonstrating this algorithm:
-   - "rosenbrock": Narrow curved valley (good for gradient methods)
-   - "rastrigin": Many local minima (good for global optimizers)
-   - "sphere": Simple convex (good for demonstrating convergence)
-   - "ackley": Nearly flat with deep center (good for exploration vs exploitation)
+2. Choose the best **objective_function** (game tree scenario) for demonstrating this strategy:
+   - "game_tree": Standard game tree with branching factor and depth (good for UCT, RAVE, selection policies)
+   - "random_tree": Randomly structured tree with variable branching (good for adaptive strategies)
+   - "adversarial_tree": Tree with deceptive rewards and traps (good for opponent modeling, loss avoidance)
+   - "blokus_position": Blokus-style position with high branching factor (good for progressive widening, parallelization)
 
 3. Choose the best **visualization_type**:
-   - "contour_trajectory": Single-point path on contour plot (gradient descent, simulated annealing, nelder-mead)
-   - "population_scatter": Multiple points moving on contour (genetic algorithm, PSO, differential evolution, CMA-ES)
-   - "convergence_curve": Best value over iterations (any algorithm)
+   - "tree_expansion": Animated tree growth showing node selection and expansion (UCT, RAVE, progressive widening)
+   - "visit_heatmap": Heatmap of visit counts across tree nodes (good for comparing exploration patterns)
+   - "convergence_curve": Win rate or value estimate over iterations (any strategy)
+   - "win_rate_over_time": Win rate progression across multiple games (opponent modeling, meta-optimization)
 
 Return valid JSON only.
