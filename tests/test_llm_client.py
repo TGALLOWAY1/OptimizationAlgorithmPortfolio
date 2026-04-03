@@ -29,7 +29,6 @@ class TestProviderRouting:
         """Override should select a different provider regardless of mapping."""
         # This will fail without API keys, but we can test the config lookup
         config = load_config()
-        assert "openai" in config["providers"]
         assert "gemini" in config["providers"]
 
 

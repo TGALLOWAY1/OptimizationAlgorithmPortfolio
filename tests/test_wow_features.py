@@ -270,10 +270,6 @@ class TestGeneratePlaygroundConfig:
 
 
 class TestLLMProviderStreaming:
-    def test_openai_provider_has_generate_stream(self):
-        from pipeline.llm_client import OpenAIProvider
-        assert hasattr(OpenAIProvider, "generate_stream")
-
     def test_gemini_provider_has_generate_stream(self):
         from pipeline.llm_client import GeminiProvider
         assert hasattr(GeminiProvider, "generate_stream")

@@ -22,10 +22,6 @@
     "infographic_spec"
   ],
   "providers": {
-    "openai": {
-      "model": "gpt-4o",
-      "api_key_env": "OPENAI_API_KEY"
-    },
     "gemini": {
       "model": "gemini-3.1-pro-preview",
       "api_key_env": "GEMINI_API_KEY"
@@ -54,13 +50,13 @@
     "infographic_spec": "gemini",
     "homepage_summary": "gemini",
     "infographic_image": "nano_banana",
-    "recommender": "openai",
-    "math_tutor": "openai",
-    "compare": "openai",
-    "study_plan": "openai",
-    "adapt_code": "openai",
-    "judge": "openai",
-    "knowledge_graph": "openai",
-    "playground_config": "openai"
+    "recommender": "gemini",
+    "math_tutor": "gemini",
+    "compare": "gemini",
+    "study_plan": "gemini",
+    "adapt_code": "gemini",
+    "judge": "gemini",
+    "knowledge_graph": "gemini",
+    "playground_config": "gemini"
   }
 }
