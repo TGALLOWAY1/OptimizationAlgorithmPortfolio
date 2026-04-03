@@ -59,7 +59,7 @@ def main():
     parser.add_argument(
         "--provider",
         type=str,
-        choices=["openai", "gemini"],
+        choices=["gemini"],
         help="Force a specific LLM provider for all text artifacts",
     )
     parser.add_argument(

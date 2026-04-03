@@ -1,4 +1,4 @@
-"""Multi-provider LLM client with OpenAI, Gemini, and Nano Banana Pro support."""
+"""Multi-provider LLM client with Gemini and Nano Banana Pro support."""
 
 from __future__ import annotations
 
@@ -23,11 +23,6 @@ try:
 except ImportError:
     genai = None
     genai_types = None
-
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
 
 logger = logging.getLogger(__name__)
 
@@ -79,43 +74,6 @@ class LLMProvider(ABC):
         """Yield response tokens as they arrive. Override for streaming support."""
         result = self.generate(system_prompt, user_prompt, schema={})
         yield json.dumps(result)
-
-
-class OpenAIProvider(LLMProvider):
-    """OpenAI GPT provider using the Responses API."""
-
-    def __init__(self, model: str, api_key_env: str):
-        api_key = os.environ.get(api_key_env)
-        if not api_key:
-            raise ValueError(f"Environment variable {api_key_env} is not set")
-        self.client = OpenAI(api_key=api_key)
-        self.model = model
-
-    def generate(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            response_format={"type": "json_object"},
-        )
-        text = response.choices[0].message.content
-        return json.loads(text)
-
-    def generate_stream(self, system_prompt: str, user_prompt: str) -> Iterator[str]:
-        """Stream response tokens from OpenAI."""
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            stream=True,
-        )
-        for chunk in response:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
 
 
 class GeminiProvider(LLMProvider):
@@ -197,7 +155,7 @@ def get_provider(
 
     Args:
         artifact_type: The artifact type (e.g., "overview", "infographic_image").
-        override: Optional provider name override (e.g., "openai", "gemini").
+        override: Optional provider name override (e.g., "gemini").
     """
     config = load_config()
     if override:
@@ -216,11 +174,6 @@ def get_provider(
 
     if provider_name == "nano_banana":
         provider = NanoBananaProvider(
-            model=provider_config["model"],
-            api_key_env=provider_config["api_key_env"],
-        )
-    elif provider_name == "openai":
-        provider = OpenAIProvider(
             model=provider_config["model"],
             api_key_env=provider_config["api_key_env"],
         )
