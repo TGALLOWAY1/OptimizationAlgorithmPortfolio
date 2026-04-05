@@ -2,7 +2,11 @@
 
 import json
 
-from pipeline.publish import md_to_html
+from pipeline.publish import (
+    _balance_bold_italic,
+    _close_unclosed_tags,
+    md_to_html,
+)
 
 
 class TestMarkdownRendering:
@@ -17,6 +21,34 @@ class TestMarkdownRendering:
 
         assert "<li>First item</li>" in html
         assert "<li>Second item</li>" in html
+
+    def test_unbalanced_bold_does_not_bleed(self):
+        """An unclosed ** must not make the next paragraph bold."""
+        text = "This is **broken bold\n\nThis paragraph should be normal."
+        html = md_to_html(text)
+        # The second paragraph should NOT be wrapped in <strong>
+        assert "<strong>This paragraph" not in html
+
+    def test_unbalanced_italic_does_not_bleed(self):
+        text = "Here is *broken italic\n\nNormal text follows."
+        html = md_to_html(text)
+        assert "<em>Normal text" not in html
+
+    def test_balanced_bold_preserved(self):
+        text = "This is **properly bold** text."
+        html = md_to_html(text)
+        assert "<strong>properly bold</strong>" in html
+
+    def test_close_unclosed_strong_tags(self):
+        html = "<p><strong>open bold</p><p>next paragraph</p>"
+        fixed = _close_unclosed_tags(html)
+        assert fixed.count("</strong>") == 1
+
+    def test_balance_bold_italic_removes_trailing_stars(self):
+        text = "Some **unmatched bold text"
+        result = _balance_bold_italic(text)
+        # The unmatched ** should be removed
+        assert result.count("**") == 0
 
 
 class TestPublishLifecycle:

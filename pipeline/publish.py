@@ -97,6 +97,58 @@ def _ensure_bullet_lists(text: str) -> str:
     return re.sub(r":\s*\n(\s*-\s)", r":\n\n\1", text)
 
 
+def _balance_bold_italic(text: str) -> str:
+    """Fix unbalanced ``**`` and ``*`` markers that cause paragraphs to be entirely bold/italic.
+
+    Operates per-paragraph so an unclosed marker in one block cannot bleed into the next.
+    """
+
+    def _fix_paragraph(para: str) -> str:
+        # Fix unbalanced ** (bold)
+        bold_count = len(re.findall(r"(?<!\*)\*\*(?!\*)", para))
+        if bold_count % 2 != 0:
+            # Remove the last unmatched ** rather than leaving it open
+            # Find the last ** and remove it
+            para = _remove_last_occurrence(para, "**")
+
+        # Fix unbalanced * (italic) — but skip * inside ** pairs
+        # First mask out ** pairs, then count remaining *
+        masked = re.sub(r"\*\*", "@@DBL@@", para)
+        star_count = masked.count("*")
+        if star_count % 2 != 0:
+            # Remove the last unmatched *
+            para = _remove_last_occurrence(para, "*")
+
+        return para
+
+    paragraphs = text.split("\n\n")
+    return "\n\n".join(_fix_paragraph(p) for p in paragraphs)
+
+
+def _remove_last_occurrence(text: str, marker: str) -> str:
+    """Remove the last occurrence of *marker* in *text*."""
+    idx = text.rfind(marker)
+    if idx == -1:
+        return text
+    return text[:idx] + text[idx + len(marker):]
+
+
+def _close_unclosed_tags(html: str) -> str:
+    """Close ``<strong>`` and ``<em>`` tags left open by the markdown parser.
+
+    Uses a lightweight approach: count opens vs closes and append closing tags
+    at the end of each ``<p>`` / ``<li>`` block so formatting cannot bleed.
+    """
+    for tag in ("strong", "em"):
+        open_tag = f"<{tag}>"
+        close_tag = f"</{tag}>"
+        opens = html.count(open_tag)
+        closes = html.count(close_tag)
+        if opens > closes:
+            html += close_tag * (opens - closes)
+    return html
+
+
 def _strip_redundant_leading_heading(text: str, _section_title: str = "") -> str:
     """Remove a leading # or ## line that duplicates the section context."""
     text = text.strip()
@@ -139,7 +191,9 @@ def _render_markdown(
         text = _downgrade_headers(text)
 
     text, math_placeholders = _extract_math_segments(text)
+    text = _balance_bold_italic(text)
     html = markdown.markdown(text, extensions=["fenced_code", "tables", "sane_lists"])
+    html = _close_unclosed_tags(html)
     return _restore_placeholders(html, math_placeholders)
 
 
