@@ -283,7 +283,7 @@ function renderCards(recommendations, container) {
                 '<span class="rec-card__badge ' + badgeClass + '">' + rec.confidence_score + '% Match</span>' +
             '</div>' +
             '<p class="rec-card__body">' + escapeHtml(rec.justification) + '</p>' +
-            '<a class="rec-card__cta" href="/' + encodeURI(rec.url_slug) + '.html">Read Full Guide</a>';
+            '<a class="rec-card__cta" href="' + encodeURI(rec.url_slug) + '.html">Read Full Guide</a>';
         container.appendChild(card);
     });
 }
