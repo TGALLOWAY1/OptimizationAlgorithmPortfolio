@@ -26,6 +26,10 @@
       "model": "gemini-3.1-pro-preview",
       "api_key_env": "GEMINI_API_KEY"
     },
+    "gemini_flash": {
+      "model": "gemini-3.1-flash-preview",
+      "api_key_env": "GEMINI_API_KEY"
+    },
     "nano_banana": {
       "model": "gemini-3.1-flash-image-preview",
       "api_key_env": "GEMINI_API_KEY"
@@ -43,12 +47,12 @@
   },
   "implementation_disallowed_terms": {},
   "artifact_provider_map": {
-    "plan": "gemini",
-    "overview": "gemini",
-    "math_deep_dive": "gemini",
-    "implementation": "gemini",
-    "infographic_spec": "gemini",
-    "homepage_summary": "gemini",
+    "plan": "gemini_flash",
+    "overview": "gemini_flash",
+    "math_deep_dive": "gemini_flash",
+    "implementation": "gemini_flash",
+    "infographic_spec": "gemini_flash",
+    "homepage_summary": "gemini_flash",
     "infographic_image": "nano_banana",
     "recommender": "gemini",
     "math_tutor": "gemini",
@@ -56,7 +60,7 @@
     "study_plan": "gemini",
     "adapt_code": "gemini",
     "judge": "gemini",
-    "knowledge_graph": "gemini",
-    "playground_config": "gemini"
+    "knowledge_graph": "gemini_flash",
+    "playground_config": "gemini_flash"
   }
 }

@@ -120,6 +120,7 @@ def retry_loop(
             "attempt": attempt,
             "stage": "judge",
             "result": judge_result,
+            "tool_calls": judge_result.get("tool_calls", []),
         })
 
         if judge_result.get("passed", False):

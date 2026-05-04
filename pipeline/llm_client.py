@@ -7,8 +7,9 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -110,6 +111,102 @@ class GeminiProvider(LLMProvider):
             if chunk.text:
                 yield chunk.text
 
+    def generate_with_tools(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        tools: list[dict],
+        dispatch: Callable[[str, dict], dict],
+        max_iterations: int = 5,
+    ) -> dict:
+        """Run a tool-use loop and return the final text plus the tool-call history.
+
+        The loop sends the system+user prompts to Gemini with the supplied tool
+        declarations. On each turn the model can either return text (the final
+        answer) or one or more ``function_call`` parts. Function calls are
+        dispatched via ``dispatch(name, args)``; the return value is sent back
+        to the model as a ``function_response`` and the loop continues.
+
+        Returns a dict with ``text`` (final model output as a string),
+        ``tool_calls`` (list of {name, args, result}), and ``iterations``.
+        """
+        function_decls = [
+            genai_types.FunctionDeclaration(
+                name=tool["name"],
+                description=tool["description"],
+                parameters=tool["parameters"],
+            )
+            for tool in tools
+        ]
+        gemini_tool = genai_types.Tool(function_declarations=function_decls)
+        config = genai_types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            tools=[gemini_tool],
+        )
+
+        contents: list[Any] = [
+            genai_types.Content(
+                role="user",
+                parts=[genai_types.Part.from_text(text=user_prompt)],
+            )
+        ]
+        tool_calls: list[dict] = []
+        final_text = ""
+
+        for iteration in range(1, max_iterations + 1):
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config,
+            )
+            candidate = response.candidates[0]
+            parts = list(candidate.content.parts or [])
+
+            fn_calls = [p for p in parts if getattr(p, "function_call", None)]
+            text_parts = [p.text for p in parts if getattr(p, "text", None)]
+
+            if not fn_calls:
+                final_text = "".join(text_parts).strip()
+                return {
+                    "text": final_text,
+                    "tool_calls": tool_calls,
+                    "iterations": iteration,
+                }
+
+            contents.append(candidate.content)
+
+            response_parts = []
+            for part in fn_calls:
+                fn_call = part.function_call
+                args = dict(fn_call.args) if fn_call.args else {}
+                result = dispatch(fn_call.name, args)
+                tool_calls.append({
+                    "name": fn_call.name,
+                    "args": args,
+                    "result": result,
+                    "iteration": iteration,
+                })
+                response_parts.append(
+                    genai_types.Part.from_function_response(
+                        name=fn_call.name,
+                        response=result,
+                    )
+                )
+            contents.append(
+                genai_types.Content(role="user", parts=response_parts)
+            )
+
+        logger.warning(
+            "Tool-use loop hit max_iterations=%d without a final answer",
+            max_iterations,
+        )
+        return {
+            "text": final_text,
+            "tool_calls": tool_calls,
+            "iterations": max_iterations,
+            "max_iterations_reached": True,
+        }
+
 
 class NanoBananaProvider:
     """Generates infographic images via Nano Banana Pro (Gemini 3 Image)."""
@@ -177,7 +274,7 @@ def get_provider(
             model=provider_config["model"],
             api_key_env=provider_config["api_key_env"],
         )
-    elif provider_name == "gemini":
+    elif provider_name.startswith("gemini"):
         provider = GeminiProvider(
             model=provider_config["model"],
             api_key_env=provider_config["api_key_env"],
