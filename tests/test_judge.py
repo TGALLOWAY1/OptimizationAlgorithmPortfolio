@@ -95,7 +95,9 @@ class TestEvaluateArtifact:
             "revision_instructions": [],
         }
 
-        result = evaluate_artifact("cma-es", "overview", {"markdown": "content"})
+        result = evaluate_artifact(
+            "cma-es", "overview", {"markdown": "content"}, use_tools=False
+        )
         assert result["passed"] is True
         assert result["overall_score"] == 8
 
@@ -111,7 +113,9 @@ class TestEvaluateArtifact:
         mock_provider.return_value = MagicMock()
         mock_generate.side_effect = RuntimeError("API error")
 
-        result = evaluate_artifact("cma-es", "overview", {"markdown": "content"})
+        result = evaluate_artifact(
+            "cma-es", "overview", {"markdown": "content"}, use_tools=False
+        )
         assert result["passed"] is False
         assert result["overall_score"] == 0
 

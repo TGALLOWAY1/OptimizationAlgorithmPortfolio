@@ -9,13 +9,18 @@ from pipeline.llm_client import get_provider, generate_with_retry, load_config
 
 
 class TestProviderRouting:
-    def test_plan_uses_gemini(self):
+    def test_plan_uses_gemini_flash(self):
         config = load_config()
-        assert config["artifact_provider_map"]["plan"] == "gemini"
+        assert config["artifact_provider_map"]["plan"] == "gemini_flash"
 
-    def test_overview_uses_gemini(self):
+    def test_overview_uses_gemini_flash(self):
         config = load_config()
-        assert config["artifact_provider_map"]["overview"] == "gemini"
+        assert config["artifact_provider_map"]["overview"] == "gemini_flash"
+
+    def test_judge_uses_gemini_pro(self):
+        config = load_config()
+        assert config["artifact_provider_map"]["judge"] == "gemini"
+        assert "pro" in config["providers"]["gemini"]["model"]
 
     def test_infographic_image_uses_nano_banana(self):
         config = load_config()
