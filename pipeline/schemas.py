@@ -314,6 +314,273 @@ PLAYGROUND_CONFIG_SCHEMA = {
     "additionalProperties": False,
 }
 
+CONTENT_BRIEF_SCHEMA = {
+    "type": "object",
+    "required": [
+        "topic",
+        "audience",
+        "content_type",
+        "technical_depth",
+        "goals",
+        "requested_artifacts",
+        "raw_input_summary",
+    ],
+    "properties": {
+        "topic": {"type": "string", "minLength": 3},
+        "audience": {"type": "string", "minLength": 3},
+        "content_type": {
+            "type": "string",
+            "enum": [
+                "blog_post",
+                "linkedin_post",
+                "tutorial",
+                "readme",
+                "article",
+                "slide_outline",
+                "short_form_script",
+            ],
+        },
+        "technical_depth": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "advanced"],
+        },
+        "goals": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 3},
+            "minItems": 1,
+        },
+        "requested_artifacts": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1,
+        },
+        "raw_input_summary": {"type": "string", "minLength": 10},
+        "key_terms": {"type": "array", "items": {"type": "string"}},
+    },
+    "additionalProperties": False,
+}
+
+
+RESEARCH_NOTES_SCHEMA = {
+    "type": "object",
+    "required": ["notes", "assumptions", "open_questions"],
+    "properties": {
+        "notes": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "claim",
+                    "supporting_points",
+                    "needs_verification",
+                ],
+                "properties": {
+                    "claim": {"type": "string", "minLength": 5},
+                    "supporting_points": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "needs_verification": {"type": "boolean"},
+                    "source_hint": {"type": "string"},
+                },
+                "additionalProperties": False,
+            },
+            "minItems": 1,
+        },
+        "assumptions": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+        "open_questions": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+    },
+    "additionalProperties": False,
+}
+
+
+CONTENT_OUTLINE_SCHEMA = {
+    "type": "object",
+    "required": [
+        "title",
+        "hook",
+        "sections",
+        "estimated_word_count",
+        "target_format",
+    ],
+    "properties": {
+        "title": {"type": "string", "minLength": 5},
+        "hook": {"type": "string", "minLength": 10},
+        "sections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["heading", "purpose", "key_points", "section_type"],
+                "properties": {
+                    "heading": {"type": "string", "minLength": 3},
+                    "purpose": {"type": "string", "minLength": 5},
+                    "key_points": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                    },
+                    "section_type": {
+                        "type": "string",
+                        "enum": [
+                            "intro",
+                            "explanation",
+                            "example",
+                            "comparison",
+                            "deep_dive",
+                            "cta",
+                            "conclusion",
+                        ],
+                    },
+                },
+                "additionalProperties": False,
+            },
+            "minItems": 3,
+        },
+        "estimated_word_count": {"type": "integer", "minimum": 100},
+        "target_format": {"type": "string", "minLength": 3},
+    },
+    "additionalProperties": False,
+}
+
+
+DRAFT_SCHEMA = {
+    "type": "object",
+    "required": ["markdown", "word_count", "sections_covered"],
+    "properties": {
+        "markdown": {"type": "string", "minLength": 200},
+        "word_count": {"type": "integer", "minimum": 50},
+        "sections_covered": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1,
+        },
+    },
+    "additionalProperties": False,
+}
+
+
+REVIEW_REPORT_SCHEMA = {
+    "type": "object",
+    "required": ["issues", "blocking_issues_count", "overall_assessment"],
+    "properties": {
+        "issues": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["severity", "location", "description"],
+                "properties": {
+                    "severity": {
+                        "type": "string",
+                        "enum": ["critical", "major", "minor", "nit"],
+                    },
+                    "location": {"type": "string"},
+                    "description": {"type": "string", "minLength": 5},
+                    "suggested_fix": {"type": "string"},
+                },
+                "additionalProperties": False,
+            },
+        },
+        "blocking_issues_count": {"type": "integer", "minimum": 0},
+        "overall_assessment": {"type": "string", "minLength": 5},
+        "requires_human": {"type": "boolean"},
+    },
+    "additionalProperties": False,
+}
+
+
+EDITED_DRAFT_SCHEMA = {
+    "type": "object",
+    "required": ["markdown", "word_count", "changes_made", "resolved_issues"],
+    "properties": {
+        "markdown": {"type": "string", "minLength": 200},
+        "word_count": {"type": "integer", "minimum": 50},
+        "changes_made": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+        "resolved_issues": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+    },
+    "additionalProperties": False,
+}
+
+
+REPURPOSED_ASSETS_SCHEMA = {
+    "type": "object",
+    "required": [
+        "linkedin_post",
+        "x_thread",
+        "youtube_description",
+        "short_form_script",
+        "newsletter_blurb",
+        "readme_excerpt",
+    ],
+    "properties": {
+        "linkedin_post": {"type": "string", "minLength": 50},
+        "x_thread": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 5},
+            "minItems": 2,
+        },
+        "youtube_description": {"type": "string", "minLength": 50},
+        "short_form_script": {"type": "string", "minLength": 30},
+        "newsletter_blurb": {"type": "string", "minLength": 30},
+        "readme_excerpt": {"type": "string", "minLength": 30},
+    },
+    "additionalProperties": False,
+}
+
+
+PUBLISHING_QA_SCHEMA = {
+    "type": "object",
+    "required": ["findings", "qa_score", "publishable", "blocking_issues"],
+    "properties": {
+        "findings": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["category", "severity", "description"],
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "missing_section",
+                            "format",
+                            "overclaim",
+                            "weak_hook",
+                            "cta",
+                            "terminology",
+                            "completeness",
+                        ],
+                    },
+                    "severity": {
+                        "type": "string",
+                        "enum": ["critical", "major", "minor", "nit"],
+                    },
+                    "description": {"type": "string", "minLength": 5},
+                },
+                "additionalProperties": False,
+            },
+        },
+        "qa_score": {"type": "integer", "minimum": 0, "maximum": 100},
+        "publishable": {"type": "boolean"},
+        "blocking_issues": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+    },
+    "additionalProperties": False,
+}
+
+
 SCHEMAS = {
     "plan": PLAN_SCHEMA,
     "overview": OVERVIEW_SCHEMA,
@@ -323,4 +590,12 @@ SCHEMAS = {
     "homepage_summary": HOMEPAGE_SUMMARY_SCHEMA,
     "knowledge_graph": KNOWLEDGE_GRAPH_SCHEMA,
     "playground_config": PLAYGROUND_CONFIG_SCHEMA,
+    "content_brief": CONTENT_BRIEF_SCHEMA,
+    "research_notes": RESEARCH_NOTES_SCHEMA,
+    "content_outline": CONTENT_OUTLINE_SCHEMA,
+    "draft": DRAFT_SCHEMA,
+    "review_report": REVIEW_REPORT_SCHEMA,
+    "edited_draft": EDITED_DRAFT_SCHEMA,
+    "repurposed_assets": REPURPOSED_ASSETS_SCHEMA,
+    "publishing_qa": PUBLISHING_QA_SCHEMA,
 }

@@ -37,7 +37,7 @@ OptimizationAlgorithmPortfolio/
 │   ├── math_tutor.py           # Math equation explanation endpoint
 │   └── study_plan.py           # Learning roadmap endpoint
 ├── pipeline/                   # Content generation pipeline
-│   ├── generate.py             # CLI entry point / orchestrator
+│   ├── generate.py             # CLI entry point / orchestrator (per-technique artifacts)
 │   ├── generator.py            # Artifact generation engine
 │   ├── llm_client.py           # Multi-provider LLM client (OpenAI, Gemini, Nano Banana Pro)
 │   ├── publish.py              # Static HTML publisher
@@ -45,8 +45,10 @@ OptimizationAlgorithmPortfolio/
 │   ├── validator.py            # Content validation rules
 │   ├── recommender_api.py      # Algorithm recommender endpoint
 │   ├── config.json             # Technique list, provider config, routing
-│   ├── prompts/                # Jinja2-style prompt templates (.md)
-│   └── templates/              # Jinja2 HTML templates
+│   ├── prompts/                # Prompt templates (.md, {{var}} substitution)
+│   ├── templates/              # Jinja2 HTML templates
+│   ├── agents/                 # Multi-agent content pipeline agents (intake, research, ...)
+│   └── content_pipeline/       # Multi-agent orchestrator, registry, gates, run state
 ├── tests/                      # pytest test suite (7 files, 70 tests)
 │   ├── test_generator.py       # Slugify, idempotency
 │   ├── test_llm_client.py      # Provider routing, retries
@@ -119,6 +121,7 @@ python -m pytest tests/ -k "test_valid" # Filter by name
 - **Adding a new LLM provider**: Subclass `LLMProvider` in `llm_client.py`, register in `get_provider()`, add to `config.json`
 - **Adding a new artifact type**: Add schema in `schemas.py`, prompt template in `prompts/`, validation in `validator.py`, routing in `config.json`
 - **Adding a new API endpoint**: Create blueprint in `api/`, register in `api/app.py`
+- **Adding a new content agent**: Create `pipeline/agents/<name>_agent.py` subclassing `ContentAgent`, add prompt to `pipeline/prompts/content_pipeline/`, add schema to `schemas.py`, add provider key to `config.json` `artifact_provider_map`, register in `build_default_registry()` in `pipeline/agents/__init__.py`. See `docs/content-pipeline-orchestration.md`.
 
 ## Important Notes
 

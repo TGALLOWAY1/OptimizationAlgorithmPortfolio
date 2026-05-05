@@ -1,0 +1,5 @@
+{
+  "raw_input": "Write a technical article explaining how multi-agent orchestration can improve AI-native product development workflows, using a PRD-to-artifacts pipeline as the example. The audience is technical product managers and engineering leads who already use LLMs day-to-day but treat them as one-shot wrappers. The piece should compare the one-shot approach to a staged multi-agent pipeline (intake, research, outline, draft, review, edit, repurposing, QA), explain why each stage helps, and end with a concrete pattern they can apply to their own workflow.",
+  "audience_hint": "technical product managers and engineering leads",
+  "content_type_hint": "blog_post"
+}

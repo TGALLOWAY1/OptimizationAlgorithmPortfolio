@@ -164,6 +164,20 @@ The pipeline routes different artifact types to appropriate LLM providers:
 4. **Schema-validated** — All JSON outputs validated against strict schemas
 5. **Retry logic** — Exponential backoff for API calls
 
+### Multi-Agent Content Pipeline
+
+A separate orchestration layer (`pipeline/content_pipeline/`) takes an arbitrary raw input — idea, transcript, outline, or rough draft — and runs it through eight specialized agents (intake → research → outline → draft → technical review → edit → repurposing → publishing QA) with quality gates between stages. Every step writes a typed artifact to disk; failed gates trigger a bounded revision pass; interrupted runs can be resumed by run id.
+
+```bash
+# Smoke run with stub agents (no API key required)
+python examples/run_content_pipeline.py --dry-run
+
+# Real run (needs GEMINI_API_KEY)
+python examples/run_content_pipeline.py --input examples/sample_input.json
+```
+
+See [`docs/content-pipeline-orchestration.md`](docs/content-pipeline-orchestration.md) for the architecture, agent contracts, and instructions for adding a new agent.
+
 ## Testing
 
 ```bash
