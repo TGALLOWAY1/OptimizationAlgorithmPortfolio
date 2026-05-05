@@ -61,6 +61,14 @@
     "adapt_code": "gemini",
     "judge": "gemini",
     "knowledge_graph": "gemini_flash",
-    "playground_config": "gemini_flash"
+    "playground_config": "gemini_flash",
+    "agent_intake": "gemini_flash",
+    "agent_research": "gemini_flash",
+    "agent_outline": "gemini_flash",
+    "agent_draft": "gemini",
+    "agent_technical_review": "gemini",
+    "agent_editor": "gemini",
+    "agent_repurposing": "gemini_flash",
+    "agent_publishing_qa": "gemini_flash"
   }
 }

@@ -1,88 +1,84 @@
 # Optimization Algorithm Portfolio
 
-An automated educational content platform that generates comprehensive learning materials for optimization algorithms using LLM-powered content pipelines.
+An automated educational content platform that generates comprehensive learning materials for **Monte Carlo Tree Search (MCTS) strategies and enhancements** using a multi-provider LLM pipeline, plus a multi-agent orchestration layer for arbitrary technical-content production.
+
+> The repository name reflects its origins; the active subject matter is configured in `pipeline/config.json` and is currently the MCTS Strategy Portfolio.
 
 ## Overview
 
-This project combines:
-- **LLM-driven content generation** — Automatically creates educational materials using OpenAI GPT-4o, Gemini 3.1 Pro, and Nano Banana Pro
-- **Interactive Flask API** — Real-time algorithm recommendations, comparisons, math tutoring, and code adaptation
-- **Static site publisher** — Generates a mobile-responsive educational website
+This project combines three subsystems that share the same LLM client, schema validator, and prompt-template idioms:
 
-## Features
+1. **Per-technique content pipeline** (`pipeline/generate.py`) — generates structured artifacts (plan, overview, math deep dive, implementation, infographic spec, infographic image, playground config, knowledge graph) for each technique listed in `config.json`. Idempotent, manifest-aware, and routed per-artifact to the most appropriate Gemini model.
+2. **Multi-agent content pipeline** (`pipeline/content_pipeline/` + `pipeline/agents/`) — takes an arbitrary raw input (idea, transcript, outline, or rough draft) and runs it through eight specialized agents, with quality gates between stages, structured run state on disk, and resume-by-run-id support.
+3. **Interactive Flask API** (`api/`) — serves recommender, comparison, math tutor, study plan, and code adaptation endpoints alongside the static site.
 
-### Content Generation
-- Generates structured educational content for 8 optimization algorithms
-- Creates multiple artifact types: overviews, math deep dives, implementations, and infographics
-- Schema-validated JSON output with retry logic
+## MCTS Strategies Covered
 
-### Interactive Learning Tools
-- **Algorithm Recommender** — Get personalized algorithm suggestions based on your problem description
-- **Study Plan Generator** — Create customized learning roadmaps
-- **Math Tutor** — Interactive explanations of mathematical concepts and derivations
-- **Algorithm Comparator** — Side-by-side comparison of different optimization approaches
-- **Code Adapter** — Transform implementations between frameworks (NumPy, PyTorch, JAX, etc.)
+The eight techniques currently configured in `pipeline/config.json`:
 
-### Educational Website
-- Mobile-responsive design with modern UI
-- Expandable mathematical derivations
-- Code examples with framework tabs
-- Use-case comparison matrix
+1. **UCT** — Upper Confidence Bounds for Trees
+2. **RAVE** — Rapid Action Value Estimation
+3. **Progressive History & Progressive Widening**
+4. **NST** — N-gram Selection Technique
+5. **Rollout Policy Strategies**
+6. **Opponent Modeling in MCTS**
+7. **Root & Tree Parallelization**
+8. **Adaptive Meta-Optimization**
 
-## Optimization Techniques Covered
-
-1. **Bayesian Optimization** — Probabilistic surrogate-based optimization
-2. **Genetic Algorithm** — Evolutionary computation inspired by natural selection
-3. **Simulated Annealing** — Probabilistic technique for approximating global optima
-4. **Particle Swarm Optimization** — Swarm intelligence optimization
-5. **Gradient Descent** — First-order iterative optimization
-6. **Nelder-Mead Simplex** — Derivative-free simplex method
-7. **CMA-ES** — Covariance Matrix Adaptation Evolution Strategy
-8. **Differential Evolution** — Stochastic population-based optimizer
+The list is configuration-driven. Retargeting the portfolio to a different domain is a `config.json` change — see `pipeline/generate.py` and `pipeline/config.json`.
 
 ## Quick Start
 
 ### Prerequisites
+
 - Python 3.11+
-- OpenAI API key
-- Google Gemini API key
+- Google Gemini API key (`GEMINI_API_KEY`) — used for all text and image generation
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/TGALLOWAY1/OptimizationAlgorithmPortfolio.git
 cd OptimizationAlgorithmPortfolio
 
-# Create virtual environment
 python3.11 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-
-# Install dependencies
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Configure API keys
-cat > .env << EOF
-OPENAI_API_KEY=sk-your-key-here
+cat > .env << 'EOF'
 GEMINI_API_KEY=your-gemini-key-here
 EOF
 ```
 
-### Generate Content
+### Generate Per-Technique Content
 
 ```bash
-# Generate all techniques
+# Generate every configured technique
 python3.11 -m pipeline.generate
 
 # Generate a single technique
-python3.11 -m pipeline.generate --technique "Bayesian Optimization"
+python3.11 -m pipeline.generate --technique "UCT (Upper Confidence Bounds for Trees)"
 
 # Skip image generation (faster, lower cost)
 python3.11 -m pipeline.generate --skip-images
 
-# Remove stale generated outputs before regenerating
-python3.11 -m pipeline.generate --clean
+# Force regeneration of cached artifacts
+python3.11 -m pipeline.generate --force
 ```
+
+### Run the Multi-Agent Content Pipeline
+
+```bash
+# Smoke run with stub agents (no API key required)
+python3.11 examples/run_content_pipeline.py --dry-run
+
+# Real run (uses GEMINI_API_KEY)
+python3.11 examples/run_content_pipeline.py --input examples/sample_input.json
+
+# Resume an interrupted run by id
+python3.11 examples/run_content_pipeline.py --resume <run_id>
+```
+
+Outputs land under `outputs/runs/<run_id>/` (gitignored).
 
 ### Publish Static Site
 
@@ -93,145 +89,170 @@ python3.11 -m pipeline.publish
 ### Run the Application
 
 ```bash
-# Start Flask server (serves both API and static site)
 python3.11 api/app.py
-
-# Open http://localhost:5000 in your browser
+# Open http://localhost:5000
 ```
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/recommend` | POST | Get algorithm recommendations for a problem |
-| `/api/compare` | POST | Compare two algorithms side-by-side |
-| `/api/math_tutor` | POST | Get explanations for math concepts |
-| `/api/study_plan` | POST | Generate a personalized study plan |
-| `/api/adapt_code` | POST | Adapt code between frameworks |
+| Endpoint              | Method | Description                                        |
+| --------------------- | ------ | -------------------------------------------------- |
+| `/api/recommend`      | POST   | Get algorithm recommendations for a problem        |
+| `/api/compare`        | POST   | Compare two algorithms side-by-side                |
+| `/api/math_tutor`     | POST   | Get explanations for math concepts (SSE streaming) |
+| `/api/study_plan`     | POST   | Generate a personalized study plan (SSE streaming) |
+| `/api/adapt_code`     | POST   | Adapt code between frameworks                      |
 
 ### Example: Algorithm Recommendation
 
 ```bash
 curl -X POST http://localhost:5000/api/recommend \
   -H "Content-Type: application/json" \
-  -d '{"query": "I need to tune hyperparameters for a neural network with expensive evaluations"}'
+  -d '{"query": "I need a selection policy that handles high branching factors with limited rollouts"}'
 ```
+
+## Architecture
+
+### Multi-Model LLM Routing
+
+All requests are routed through `pipeline.llm_client.get_provider(artifact_type)`, which reads `pipeline/config.json`'s `artifact_provider_map` and returns the right provider instance. Three Gemini-family models are wired up; the assignment is deliberately asymmetric — flagship reasoning where it matters, cheap flash everywhere else, and the image model only for visual artifacts.
+
+| Provider key   | Model                              | Role                                                                                          |
+| -------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| `gemini`       | `gemini-3.1-pro-preview`           | High-stakes reasoning: drafting, technical review, editor, recommender, judge, math tutor, comparator, study plan, code adapter. |
+| `gemini_flash` | `gemini-3.1-flash-preview`         | Bulk generation: per-technique plans, overviews, math deep dives, implementations, infographic specs, homepage summaries, knowledge graph, playground configs, intake/research/outline/repurposing/QA agents. |
+| `nano_banana`  | `gemini-3.1-flash-image-preview`   | Image generation: infographic and preview images.                                              |
+
+Adding a new provider is a three-step change: subclass `LLMProvider` in `pipeline/llm_client.py`, register it in `get_provider()`, and add an entry under `providers` and `artifact_provider_map` in `config.json`.
+
+### Per-Technique Content Pipeline
+
+`pipeline/generate.py` is the orchestrator for the technique-content axis:
+
+1. **Config-driven** — `config.json` lists techniques and maps each artifact type to a provider.
+2. **Manifest-aware idempotency** — `manifest.json` per technique tracks the input hash (prompt + schema + config slice + technique inputs). Artifacts regenerate only when an input changes or `--force` is set.
+3. **Strict schemas** — every JSON artifact is validated against a schema in `pipeline/schemas.py` after generation, with an additional content-validation pass in `pipeline/validator.py` (word counts, LaTeX presence, technique-term coverage, off-topic detection).
+4. **Exponential-backoff retry** — `generate_with_retry` retries up to three times (2s, 4s, 8s) on API failures and schema-validation failures.
+5. **Generated/source split** — `content/` holds tracked source data (references, rubrics); `generated/` holds runtime outputs (gitignored); `site/` holds published HTML (gitignored).
+
+### Multi-Agent Content Pipeline
+
+A separate orchestration layer (`pipeline/content_pipeline/` + `pipeline/agents/`) runs an arbitrary raw input through eight specialized agents with quality gates between stages. Every step writes a typed JSON artifact to disk; failed gates trigger a bounded revision pass; interrupted runs can be resumed by run id.
+
+```
+ContentPipelineInput
+       │
+       ▼
+   ┌─────────┐    ┌──────────┐    ┌─────────┐    ┌─────────┐
+   │ intake  │───▶│ research │───▶│ outline │───▶│  draft  │
+   └─────────┘    └──────────┘    └─────────┘    └─────────┘
+   intake_gate                    outline_gate   draft_gate
+       │                                │             │
+       ▼                                ▼             ▼
+   ┌──────────────────┐    ┌────────┐    ┌─────────────┐    ┌──────────────┐
+   │ technical_review │───▶│ editor │───▶│ repurposing │───▶│ publishing_qa│
+   └──────────────────┘    └────────┘    └─────────────┘    └──────────────┘
+   tech_review_gate                        (optional)         final_qa_gate
+                                                              (optional)
+```
+
+#### Agent roles
+
+| Stage              | Agent                       | Responsibility                                                                                                                                                          | Provider key            |
+| ------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `intake`           | **Intake Agent**            | Parses the user's raw input (idea, transcript, outline, draft) and extracts a normalized `ContentBrief`: topic, audience, content type, technical depth, goals, requested artifacts. | `agent_intake` (Flash)  |
+| `research`         | **Research Agent**          | Surfaces the claims a piece needs to support, marks each claim's `needs_verification` flag, and lists assumptions and open questions. (No live web access — claims that depend on external sources are flagged for human verification.) | `agent_research` (Flash)|
+| `outline`          | **Outline Agent**           | Converts brief + research into a structured outline with title, hook, ordered sections, per-section purpose and key points, target word count, and target format.       | `agent_outline` (Flash) |
+| `draft`            | **Drafting Agent**          | Produces the first full Markdown draft, using the outline as the source of truth, matching audience and depth from the brief. Refuses placeholder text.                  | `agent_draft` (Pro)     |
+| `technical_review` | **Technical Reviewer Agent**| Reads the draft as a careful senior engineer would: flags inaccuracies, vague claims, missing steps, unsupported assumptions. Returns issues with explicit severity (`critical/major/minor/nit`). Does not rewrite prose. | `agent_technical_review` (Pro) |
+| `editor`           | **Editor Agent**            | Improves clarity, structure, transitions, concision, and tone while preserving every load-bearing technical claim. Resolves reviewer issues and reports the edits made.  | `agent_editor` (Pro)    |
+| `repurposing`      | **Repurposing Agent**       | Converts the edited long-form into channel-specific assets: LinkedIn post, X thread, YouTube description, short-form video script, newsletter blurb, README excerpt. Each asset matches its channel's voice and length conventions. *(Optional stage — failures are recorded as `skipped`, not `failed`.)* | `agent_repurposing` (Flash) |
+| `publishing_qa`    | **Publishing QA Agent**     | Final gate before shipping. Reads the edited long-form and the repurposed assets together; flags missing sections, broken formatting, overclaiming, weak hooks, missing CTAs, terminology drift, completeness issues. Produces a 0–100 QA score and a `publishable` boolean. *(Optional stage.)* | `agent_publishing_qa` (Flash) |
+
+#### Quality gates
+
+Five gates run between stages. A gate failure marks the stage `needs_revision`, feeds the gate's failures back to the agent as additional context, and re-runs the agent up to `max_revisions` times (default 1). When the budget is exhausted, the pipeline fails for required stages or skips the stage for optional ones.
+
+| Gate                | After stage        | Pass condition                                                                  |
+| ------------------- | ------------------ | ------------------------------------------------------------------------------- |
+| `intake_gate`       | `intake`           | Brief has audience, content_type, goals, topic                                  |
+| `outline_gate`      | `outline`          | Title + hook present, ≥3 sections, at least one `explanation`/`deep_dive`       |
+| `draft_gate`        | `draft`            | ≥300 words, no `TODO`/`TBD`/`[placeholder]` markers, ≥80% outline coverage      |
+| `tech_review_gate`  | `technical_review` | No critical-severity issues unresolved                                          |
+| `final_qa_gate`     | `publishing_qa`    | `publishable: true` and `qa_score >= 60`                                        |
+
+#### State and persistence
+
+Every transition writes `outputs/runs/<run_id>/run.json` atomically (tmp file + `os.replace`). Pipeline statuses: `queued`, `running`, `waiting_for_review`, `failed`, `completed`, `cancelled`. Stage statuses: `pending`, `running`, `succeeded`, `failed`, `skipped`, `needs_revision`. Resume reads back already-succeeded stages and replays only the rest.
+
+See [`docs/content-pipeline-orchestration.md`](docs/content-pipeline-orchestration.md) for the full architecture, data contracts, and instructions for adding a new agent.
 
 ## Project Structure
 
 ```
 OptimizationAlgorithmPortfolio/
-├── api/                        # Flask API blueprints
-│   ├── app.py                  # Main app, serves API + static site
-│   ├── adapt_code.py           # Code adaptation endpoint
-│   ├── compare.py              # Algorithm comparison endpoint
-│   ├── math_tutor.py           # Math tutoring endpoint
-│   └── study_plan.py           # Study plan generation endpoint
-├── pipeline/                   # Content generation pipeline
-│   ├── generate.py             # CLI orchestrator
-│   ├── generator.py            # Artifact generation engine
-│   ├── llm_client.py           # Multi-provider LLM client
-│   ├── publish.py              # Static HTML publisher
-│   ├── schemas.py              # JSON Schema definitions
-│   ├── prompts/                # Prompt templates
-│   └── templates/              # Jinja2 HTML templates
-├── tests/                      # Test suite (70 tests)
-├── content/                    # Tracked source data (references + rubrics)
-├── generated/                  # Generated technique artifacts, matrix, and evaluation outputs
-├── site/                       # Published HTML (gitignored)
-├── requirements.txt            # Python dependencies
-├── SETUP.md                    # Detailed setup instructions
-└── CLAUDE.md                   # Codebase documentation
+├── api/                                # Flask API blueprints
+│   ├── app.py                          # App factory + static-site serving
+│   ├── adapt_code.py
+│   ├── compare.py
+│   ├── math_tutor.py
+│   └── study_plan.py
+├── pipeline/                           # Content generation pipeline
+│   ├── generate.py                     # Per-technique CLI orchestrator
+│   ├── generator.py                    # Per-technique artifact engine
+│   ├── llm_client.py                   # LLMProvider ABC, Gemini + Nano Banana providers, retry
+│   ├── publish.py                      # Static HTML publisher
+│   ├── schemas.py                      # JSON Schema definitions
+│   ├── validator.py                    # Content validation rules
+│   ├── recommender_api.py              # Recommender Flask app
+│   ├── config.json                     # Topic, techniques, providers, artifact routing
+│   ├── prompts/                        # Prompt templates ({{var}} substitution)
+│   │   └── content_pipeline/           # Multi-agent prompt templates
+│   ├── templates/                      # Jinja2 HTML templates
+│   ├── agents/                         # 8 ContentAgent subclasses + base ABC + default registry
+│   └── content_pipeline/               # Orchestrator, registry, gates, state, history
+├── examples/
+│   ├── run_content_pipeline.py         # Multi-agent pipeline CLI (incl. --dry-run)
+│   └── sample_input.json
+├── docs/
+│   └── content-pipeline-orchestration.md
+├── tests/                              # 226 tests, all LLM calls mocked
+├── content/                            # Tracked source data (references, rubrics)
+├── generated/                          # Per-technique outputs (gitignored)
+├── outputs/                            # Multi-agent pipeline runs (gitignored)
+├── site/                               # Published HTML (gitignored)
+├── requirements.txt
+├── SETUP.md
+└── CLAUDE.md
 ```
-
-## Architecture
-
-### Multi-Provider LLM Routing
-
-The pipeline routes different artifact types to appropriate LLM providers:
-
-| Provider | Use Case |
-|----------|----------|
-| OpenAI GPT-4o | Complex content (overviews, math deep dives) |
-| Gemini 3.1 Pro | Structured content (plans, implementations) |
-| Nano Banana Pro | Image generation (infographics) |
-
-### Content Pipeline
-
-1. **Config-driven** — `config.json` maps techniques to providers
-2. **Manifest-aware invalidation** — Artifacts regenerate when prompts, schemas, config, or artifact version change
-3. **Generated/source split** — Tracked `content/` files stay as source data; runtime outputs live under `generated/`
-4. **Schema-validated** — All JSON outputs validated against strict schemas
-5. **Retry logic** — Exponential backoff for API calls
 
 ## Testing
 
 ```bash
-# Run all tests (no API keys required — all LLM calls are mocked)
-python3.11 -m pytest tests/ -v
+# Full suite
+python3.11 -m pytest tests/ -q
 
-# Run specific test file
-python3.11 -m pytest tests/test_api_endpoints.py -v
+# Multi-agent pipeline tests only
+python3.11 -m pytest tests/test_content_agents.py tests/test_quality_gates.py tests/test_content_pipeline.py -v
 
-# Run with coverage
-python3.11 -m pytest tests/ --cov=pipeline --cov=api
+# Filter by name
+python3.11 -m pytest tests/ -k "schema" -v
 ```
+
+All tests use `unittest.mock` — no API keys or network calls are required. The 37 multi-agent tests cover happy path, hard failure, optional-stage skip, gate-driven revision, gate budget exhaustion, and resume-from-run-id.
 
 ## Cost Estimates
 
-Full pipeline run (8 techniques, generated content + images):
+Full per-technique content refresh:
 
-| Provider | Artifacts | Est. Cost |
-|----------|-----------|-----------|
-| Gemini 3.1 Pro | Plans, technique content, homepage summaries, use-case matrix | ~$3-8 |
-| Nano Banana Pro | Infographic + preview images | ~$1-3 |
-| **Total** | **Full content refresh** | **~$4-11** |
+| Provider          | Artifacts                                                                  | Est. Cost |
+| ----------------- | -------------------------------------------------------------------------- | --------- |
+| Gemini 3.1 Flash  | Plans, overviews, math deep dives, implementations, infographic specs, summaries, knowledge graph, playground configs | ~$3–8     |
+| Gemini 3.1 Pro    | Recommender, judge, math tutor, comparator, study plan, code adapter        | ~$0.50–2  |
+| Nano Banana Pro   | Infographic + preview images                                                | ~$1–3     |
+| **Total**         | **Full content refresh**                                                    | **~$4–13**|
 
-Use `--skip-images` during development to reduce costs.
-
-## Manual Verification Checklist
-
-After generating content and publishing the site, verify these features manually:
-
-### SSE Streaming (Feature 1)
-- [ ] Open a technique page (e.g., `gradient-descent.html`)
-- [ ] In the **Mathematical Deep Dive** section, select an equation and click "Explain this"
-- [ ] Verify the Math Tutor sidebar opens and text streams in token-by-token (not all at once)
-- [ ] Verify KaTeX renders math correctly after streaming completes
-- [ ] On the homepage, open the **Study Plan** modal, fill in background and goals, and click "Generate Plan"
-- [ ] Verify the loading text animates ("Generating your study plan...", dots cycle)
-- [ ] Verify the study plan timeline renders correctly after streaming finishes
-
-### Knowledge Graph (Feature 2)
-- [ ] On the homepage (`index.html`), verify the **Algorithm Relationship Map** section appears
-- [ ] Verify all 8 algorithm nodes are visible as colored circles
-- [ ] Verify nodes are color-coded by category (red=evolutionary, blue=gradient-based, green=probabilistic, orange=direct-search)
-- [ ] Drag a node — verify the physics simulation responds (other nodes adjust)
-- [ ] Hover a node — verify a tooltip appears showing the algorithm name and summary
-- [ ] Hover a node — verify connected edges are highlighted
-- [ ] Click a node — verify it navigates to the correct technique page
-- [ ] Verify the legend at the bottom shows all 4 categories
-- [ ] Resize the browser window — verify the graph adjusts responsively
-
-### Algorithm Playground (Feature 3)
-- [ ] Open a technique page (e.g., `gradient-descent.html`)
-- [ ] Verify the **Interactive Playground** section appears below Implementation
-- [ ] Verify parameter sliders are present and labeled correctly
-- [ ] Verify the contour plot renders on the dark canvas (color gradient visible)
-- [ ] Click **Play** — verify the algorithm animates on the contour plot
-- [ ] Click **Pause** — verify the animation stops
-- [ ] Click **Step** — verify a single iteration executes
-- [ ] Click **Reset** — verify the state resets (trail cleared, iteration counter resets)
-- [ ] Adjust a parameter slider — verify the value label updates
-- [ ] Verify the **Iteration** and **Best** stats update during animation
-- [ ] Check `genetic-algorithm.html` — verify population dots (scatter) instead of single trajectory
-- [ ] Check `nelder-mead-simplex.html` — verify simplex triangle is drawn
-- [ ] Check `particle-swarm-optimization.html` — verify multiple particles move with a highlighted global best
-
-### Cross-Cutting
-- [ ] Run `python -m pytest tests/ -v` — verify all 155 tests pass
-- [ ] Open the site on mobile (or use browser devtools responsive mode) — verify all features are usable
-- [ ] Verify no console errors in browser developer tools on homepage and technique pages
+Use `--skip-images` during development to reduce costs. The multi-agent pipeline costs roughly $0.50–2 per run depending on input length.
 
 ## Contributing
 
