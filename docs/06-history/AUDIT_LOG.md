@@ -20,3 +20,17 @@
 - **Open questions:** Is the multi-agent pipeline intended to replace the single-shot path? Is the live site meant to show real content (requires committing `generated/` or running the pipeline in CI)?
 - **Next recommended action:** Phase 2 — product & feature inventory.
 - **Commit:** `docs: add baseline codebase inventory` (see git log).
+
+---
+
+# Audit Entry — Phases 2-8: Documentation System Build
+- **Date:** 2026-05-28
+- **Scope:** Product/feature inventory, screens/routes/flows, architecture + data model + API + state + integrations, testing/quality/risk/security, backlog/roadmap/next-tasks, AI-context protocol, decision/change history.
+- **Agent:** Claude Code (claude-opus-4-7), synthesizing the 6 Phase-1 audit subagents' findings.
+- **Summary:** Authored the full `docs/` tree with honest status labels and file:line evidence. Reconstructed the decision history from git (`git log`), confirming the optimization→MCTS retarget, OpenAI→Gemini switch, tool-calling judge, dual-pipeline design, and quiz removal. Corrected the stale root `CLAUDE.md`.
+- **Files inspected:** All Phase-1 sources plus `git log` history; `SETUP.md`, `.github/workflows/pages.yml`, `pipeline/paths.py` re-read for config/deploy docs.
+- **Docs changed:** Created all docs under `01-product/`, `02-architecture/`, `03-implementation/` (testing), `04-quality/`, `05-planning/`, `06-history/` (decision log + changelog), `07-ai-context/`; updated root `CLAUDE.md`.
+- **Findings:** Confirmed and documented 13 known issues, 10 debt items, 10 risks. Notable: quiz was explicitly removed end-to-end (`2e75bd6`) yet still in `CLAUDE.md`; the multi-agent pipeline has no production consumer; the live deploy is a placeholder.
+- **Open questions:** deployment story for real content; multi-agent pipeline's intended role; whether to restore multi-provider support.
+- **Next recommended action:** Phases 9-10 — visual regression plan + documentation index/onboarding.
+- **Commit:** see `docs:` commits for Phases 2-8 in git log.
