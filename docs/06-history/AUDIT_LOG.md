@@ -34,3 +34,17 @@
 - **Open questions:** deployment story for real content; multi-agent pipeline's intended role; whether to restore multi-provider support.
 - **Next recommended action:** Phases 9-10 — visual regression plan + documentation index/onboarding.
 - **Commit:** see `docs:` commits for Phases 2-8 in git log.
+
+---
+
+# Audit Entry — Phases 9-10: Visuals + Index + Onboarding
+- **Date:** 2026-05-28
+- **Scope:** Visual-regression system; documentation index + onboarding; README refresh.
+- **Agent:** Claude Code (claude-opus-4-7).
+- **Summary:** Documented the screenshot/visual-regression process (no captures possible — no API key/content/browser driver in this environment; verified the placeholder build via `python build_site.py`). Added Mermaid flow diagrams. Built the documentation index + overview README, and added "Current Status & Known Limitations" + a "Documentation" map to the root `README.md`.
+- **Files inspected:** `build_site.py` (placeholder build verified), `README.md`.
+- **Docs changed:** `08-visuals/*`, `00-overview/README.md`, `00-overview/DOCUMENTATION_INDEX.md`, root `README.md`.
+- **Findings:** Placeholder build confirmed (title "MCTS Strategy Portfolio", 8 cards). All 10 phases of the documentation infrastructure project complete.
+- **Open questions:** unchanged — deployment story; multi-agent pipeline role; multi-provider support.
+- **Next recommended action:** Execute `docs/05-planning/NEXT_AGENT_TASKS.md` TASK 1 (fix the 6 failing tests) → TASK 4 (add CI).
+- **Commit:** `docs: finalize documentation index and onboarding`.

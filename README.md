@@ -12,6 +12,16 @@ This project combines three subsystems that share the same LLM client, schema va
 2. **Multi-agent content pipeline** (`pipeline/content_pipeline/` + `pipeline/agents/`) — takes an arbitrary raw input (idea, transcript, outline, or rough draft) and runs it through eight specialized agents, with quality gates between stages, structured run state on disk, and resume-by-run-id support.
 3. **Interactive Flask API** (`api/`) — serves recommender, comparison, math tutor, study plan, and code adaptation endpoints alongside the static site.
 
+## Current Status & Known Limitations
+
+Honest snapshot (see [`docs/00-overview/PROJECT_SNAPSHOT.md`](docs/00-overview/PROJECT_SNAPSHOT.md) and [`docs/04-quality/KNOWN_ISSUES.md`](docs/04-quality/KNOWN_ISSUES.md) for detail):
+
+- **Core generation, publishing, and API:** implemented and tested.
+- **Tests:** 226 tests, currently **220 passing / 6 failing** — the 6 are stale optimization-era fixtures that don't match the migrated MCTS schema enums. On a fresh machine, `pip install cffi` before running tests or collection panics.
+- **Live GitHub Pages site:** publishes a **placeholder** page — CI doesn't run the content pipeline and `generated/` is gitignored. Full content + the interactive `/api/*` tools (recommender, compare, study plan, math tutor, adapt code) work only when running the Flask app locally with content generated.
+- **Interactive playground & knowledge-graph legend:** still hardcoded for the previous numerical-optimization domain, so they're incorrect for MCTS techniques.
+- **Legacy docs:** `SETUP.md` and `WOW_FACTOR_ANALYSIS.md` predate the MCTS/Gemini migration and contain stale OpenAI/optimization references. This README and the `docs/` tree are current.
+
 ## MCTS Strategies Covered
 
 The eight techniques currently configured in `pipeline/config.json`:
@@ -187,6 +197,26 @@ Every transition writes `outputs/runs/<run_id>/run.json` atomically (tmp file + 
 
 See [`docs/content-pipeline-orchestration.md`](docs/content-pipeline-orchestration.md) for the full architecture, data contracts, and instructions for adding a new agent.
 
+## Documentation
+
+This repo has a full, evidence-grounded documentation system under [`docs/`](docs/). Start at the index: [`docs/00-overview/DOCUMENTATION_INDEX.md`](docs/00-overview/DOCUMENTATION_INDEX.md).
+
+| Area | Start here |
+| --- | --- |
+| Fast orientation | [`docs/00-overview/PROJECT_SNAPSHOT.md`](docs/00-overview/PROJECT_SNAPSHOT.md) |
+| Product & features | [`docs/01-product/`](docs/01-product/) — brief, feature inventory, current behavior, screens, flows |
+| Architecture | [`docs/02-architecture/`](docs/02-architecture/) — architecture, system map, data model, API inventory, integrations |
+| Implementation | [`docs/03-implementation/`](docs/03-implementation/) — codebase/route inventory, config/env, testing strategy |
+| Quality & risk | [`docs/04-quality/`](docs/04-quality/) — known issues, technical debt, risk register, regression checklist, security |
+| Planning | [`docs/05-planning/`](docs/05-planning/) — backlog, prioritized TODO, roadmap, next-agent tasks |
+| History | [`docs/06-history/`](docs/06-history/) — decision log, changelog notes, audit log |
+| AI agents | [`docs/07-ai-context/`](docs/07-ai-context/) — context-loading protocol, agent workflow, prompt inventory |
+
+**Where to start:**
+- **New contributor** → this README, then `docs/01-product/PRODUCT_BRIEF.md`.
+- **AI agent** → `docs/07-ai-context/CONTEXT_LOADING_PROTOCOL.md` (load only the task-relevant bundle).
+- **Picking up work** → `docs/05-planning/NEXT_AGENT_TASKS.md`.
+
 ## Project Structure
 
 ```
@@ -214,7 +244,8 @@ OptimizationAlgorithmPortfolio/
 ├── examples/
 │   ├── run_content_pipeline.py         # Multi-agent pipeline CLI (incl. --dry-run)
 │   └── sample_input.json
-├── docs/
+├── docs/                               # Documentation system (00-overview … 08-visuals)
+│   ├── 00-overview/ … 08-visuals/      # See docs/00-overview/DOCUMENTATION_INDEX.md
 │   └── content-pipeline-orchestration.md
 ├── tests/                              # 226 tests, all LLM calls mocked
 ├── content/                            # Tracked source data (references, rubrics)
